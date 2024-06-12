@@ -9,7 +9,90 @@ object Playground {
     42
   }
 
+
+  case class UpdateRequest(anonymousDialing: Option[Boolean])
+  case class WorkableUpdateModel(anonymousDialing: Option[Boolean])
+  case class WorkerVo(anonymousDialing: Boolean)
   def main(args: Array[String]): Unit = {
     println(meaningOfLife.value)
+
+//    val up1 = UpdateRequest(Some(false))
+//    val wk1 = WorkerVo(false)
+//
+//    val wum1 = WorkableUpdateModel(up1.anonymousDialing.filterNot(_.equals(wk1.anonymousDialing)).map(res => if (res) true else false ))
+//    println(wum1)
+//
+//    val up2 = UpdateRequest(Some(false))
+//    val wk2 = WorkerVo(true)
+//
+//    val wum2 = WorkableUpdateModel(up2.anonymousDialing.filterNot(_.equals(wk2.anonymousDialing)).map(res => if (res) true else false ))
+//    println(wum2)
+//
+//    val up3 = UpdateRequest(Some(true))
+//    val wk3 = WorkerVo(false)
+//
+//    val wum3 = WorkableUpdateModel(up3.anonymousDialing.filterNot(_.equals(wk3.anonymousDialing)).map(res => if (res) true else false ))
+//    println(wum3)
+//
+//    val up4 = UpdateRequest(Some(true))
+//    val wk4 = WorkerVo(true)
+//
+//    val wum4 = WorkableUpdateModel(up4.anonymousDialing.filterNot(_.equals(wk4.anonymousDialing)).map(res => if (res) true else false ))
+//    println(wum4)
+//
+//
+//    val up5 = UpdateRequest(None)
+//    val wk5 = WorkerVo(false)
+//
+//    val wum5 = WorkableUpdateModel(up5.anonymousDialing.filterNot(_.equals(wk5.anonymousDialing)).map(res => if (res) true else false ))
+//    println(wum5)
+//
+//    val up6 = UpdateRequest(None)
+//    val wk6 = WorkerVo(true)
+//
+//    val wum6 = WorkableUpdateModel(up6.anonymousDialing.filterNot(_.equals(wk6.anonymousDialing)).map(res => if (res) true else false ))
+//    println(wum6)
+
+
+    val up1 = UpdateRequest(Some(false))
+    val wk1 = WorkerVo(false)
+
+    val wum1 = WorkableUpdateModel(up1.anonymousDialing.filterNot(_.equals(wk1.anonymousDialing)))
+    println(wum1)
+
+    val up2 = UpdateRequest(Some(false))
+    val wk2 = WorkerVo(true)
+
+    val wum2 = WorkableUpdateModel(up2.anonymousDialing.filterNot(_.equals(wk2.anonymousDialing)))
+    println(wum2)
+
+    val up3 = UpdateRequest(Some(true))
+    val wk3 = WorkerVo(false)
+
+    val wum3 = WorkableUpdateModel(up3.anonymousDialing.filterNot(_.equals(wk3.anonymousDialing)))
+    println(wum3)
+
+    val up4 = UpdateRequest(Some(true))
+    val wk4 = WorkerVo(true)
+
+    val wum4 = WorkableUpdateModel(up4.anonymousDialing.filterNot(_.equals(wk4.anonymousDialing)))
+    println(wum4)
+
+
+    val up5 = UpdateRequest(None)
+    val wk5 = WorkerVo(false)
+
+    val wum5 = WorkableUpdateModel(up5.anonymousDialing.filterNot(_.equals(wk5.anonymousDialing)))
+    println(wum5)
+
+    val up6 = UpdateRequest(None)
+    val wk6 = WorkerVo(true)
+
+    val wum6 = WorkableUpdateModel(up6.anonymousDialing.filterNot(_.equals(wk6.anonymousDialing)))
+    println(wum6)
+
+
+
+
   }
 }
