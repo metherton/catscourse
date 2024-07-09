@@ -40,12 +40,38 @@ object Monoids {
     list.foldLeft(monoid.empty)(_ |+| _)
   }
 
+  // TODO: 2 combine a list of phonebooks as Maps[String, Int]
+  // hint: don't construct a monoid, use an import
+  val phonebooks = List(
+    Map("alice" -> 235, "bob" -> 647),
+    Map("charlie" -> 372, "daniel" -> 889),
+    Map("tina" -> 123),
 
+  )
 
+  // TODO 3 : SHopping cart and online stores with monoids
+  // hint - define your monoid - Monoid.instance
+  // hint 2 - use combine by fold
+  case class ShoppingCart(items: List[String], total: Double)
+
+  implicit val scMonoid: Monoid[ShoppingCart] = Monoid.instance(ShoppingCart(List(), 0), (sc1: ShoppingCart, sc2: ShoppingCart) => {
+    ShoppingCart(sc1.items ++ sc2.items, sc1.total + sc2.total)
+  })
+
+  def checkout(shoppingCarts: List[ShoppingCart]): ShoppingCart = {
+    combineFold(shoppingCarts)
+  }
 
   def main(args: Array[String]): Unit = {
     println(sumLeft)
     println(sumRight)
     println(combineFold(numbers))
+    println(combineFold(List("I ","like ", "monoids")))
+    import cats.instances.map._
+    println(combineFold(phonebooks))
+    val sc1 = ShoppingCart(List("book", "pen"), 45)
+    val sc2 = ShoppingCart(List("bike", "computer"), 350)
+    val sc3 = ShoppingCart(List("hat", "trousers"), 56)
+    println(checkout(List(sc1, sc2, sc3)))
   }
 }
