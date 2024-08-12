@@ -23,7 +23,14 @@ object WeakerMonads {
     }
   }
 
-  import cats.Monad
+  import cats.FlatMap
+  import cats.syntax.flatMap._ // flatMap extension method
+  import cats.syntax.functor._ // map extension method
+
+  def getPairs[M[_] : FlatMap, A, B](numbers: M[A], chars: M[B]): M[(A, B)] = for {
+    n <- numbers
+    c <- chars
+  } yield (n, c)
   def main(args: Array[String]): Unit = {
 
   }
