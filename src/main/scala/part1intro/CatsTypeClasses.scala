@@ -42,6 +42,25 @@ object CatsTypeClasses {
   def increment_v2[F[_] : Functor](container: F[Int]): F[Int] =
     container.map(_ + 1)
 
+
+  // applicative - the ability to wrap types
+  trait MyApplicative[F[_]] {
+    def pure[A](value: A): F[A] // can be thought of as a sort of constructor of the type argument F
+  }
+
+
+  import cats.Applicative
+  val applicativeList = Applicative[List]
+  val aSimpleList: List[Int] = applicativeList.pure(43)
+
+  import cats.syntax.applicative._ // import the pure extension method
+  val aSimpleList_v2: List[Int] = 43.pure[List]
+
+
+
+
+
+
   def main(args: Array[String]): Unit = {
     implicit val ec = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(8))
 
