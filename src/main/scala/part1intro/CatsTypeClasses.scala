@@ -37,6 +37,11 @@ object CatsTypeClasses {
     functor.map(container)(_ + 1)
   }
 
+  import cats.syntax.functor._
+
+  def increment_v2[F[_] : Functor](container: F[Int]): F[Int] =
+    container.map(_ + 1)
+
   def main(args: Array[String]): Unit = {
     implicit val ec = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(8))
 
