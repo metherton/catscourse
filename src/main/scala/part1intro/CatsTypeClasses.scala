@@ -44,7 +44,7 @@ object CatsTypeClasses {
 
 
   // applicative - the ability to wrap types
-  trait MyApplicative[F[_]] {
+  trait MyApplicative[F[_]] extends MyFunctor[F] {
     def pure[A](value: A): F[A] // can be thought of as a sort of constructor of the type argument F
   }
 
@@ -57,9 +57,46 @@ object CatsTypeClasses {
   val aSimpleList_v2: List[Int] = 43.pure[List]
 
 
+  // flatMap - ability to chain multiple computations
+  trait MyFlatMap[F[_]] extends MyFunctor[F] {
+    def flatMap[A, B](container: F[A], f : A => F[B]): F[B]
+  }
+
+  import cats.FlatMap
+  val flatMapList = FlatMap[List]
+  import cats.syntax.flatMap._ // has flatMap extension method
+
+  def crossProduct[F[_] : FlatMap, A, B](fa: F[A], fb: F[B]): F[(A, B)] =
+    fa.flatMap(a => fb.map(b => (a, b))) // FlatMap extends Functor so we also have access to the map method
 
 
 
+
+  // MONAD - applicative + flatMap
+  trait MyMonad[F[_]] extends MyApplicative[F] with MyFlatMap[F] {
+    override def map[A, B](ma: F[A])(f: A => B): F[B] = {
+      flatMap(ma, (a: A) => pure(f(a)))
+    }
+  }
+
+
+  import cats.Monad
+
+  val monadList = Monad[List]
+
+  def crossProduct_v2[F[_] : Monad, A, B](fa: F[A], fb: F[B]): F[(A, B)] =
+    for {
+      a <- fa
+      b <- fb
+    } yield (a, b)
+
+  trait MyApplicativeError[F[_], E] extends MyApplicative[F] {
+    def raiseError[A](e: E): F[A]
+  }
+
+  import cats.ApplicativeError
+  type ErrorOr[A] = Either[String, A]
+  val applicativeErrorEither = ApplicativeError[ErrorOr, String]
 
   def main(args: Array[String]): Unit = {
     implicit val ec = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(8))
