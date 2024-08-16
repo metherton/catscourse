@@ -90,13 +90,43 @@ object CatsTypeClasses {
       b <- fb
     } yield (a, b)
 
+  // error like type classes
   trait MyApplicativeError[F[_], E] extends MyApplicative[F] {
     def raiseError[A](e: E): F[A]
   }
 
   import cats.ApplicativeError
+
+  import cats.instances.either._
   type ErrorOr[A] = Either[String, A]
   val applicativeErrorEither = ApplicativeError[ErrorOr, String]
+  val desirableValue: ErrorOr[Int] = applicativeErrorEither.pure(42)
+  val failedValue: ErrorOr[Int] = applicativeErrorEither.raiseError("Something failed")
+
+  import cats.syntax.applicativeError._ // raiseError extension method
+  val failedValue2: ErrorOr[Int] = "Something failed".raiseError[ErrorOr, Int]
+
+
+  // monad error
+  trait MyMonadError[F[_], E] extends MyApplicativeError[F, E] with Monad[F]
+
+  import cats.MonadError
+  val monadErrorEither = MonadError[ErrorOr, String]
+
+
+  // traverse
+  trait MyTraverse[F[_]] extends MyFunctor[F] {
+    def traverse[G[_], A, B](container: F[A])(f: A => G[B]): G[F[B]]
+  }
+
+  // turn nested wrappers inside out
+  val listOfOptions: List[Option[Int]] = List(Some(1), Some(2), Some(43))
+  import cats.Traverse
+  val listTraverse = Traverse[List]
+  val optionList: Option[List[Int]] = listTraverse.traverse(List(1,2,3))(x => Option(x))
+
+  import cats.syntax.traverse._
+  val optionList2: Option[List[Int]] = List(1,2,3).traverse(x => Option(x))
 
   def main(args: Array[String]): Unit = {
     implicit val ec = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(8))
