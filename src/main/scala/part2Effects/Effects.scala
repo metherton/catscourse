@@ -59,7 +59,7 @@ object Effects {
   /*
       example : MyIO data type from the Monad lesson - it IS an effect type
       - describes any computation that might produce side effects
-      - calculates a value of type A if its successfult
+      - calculates a value of type A if its successful
       - side effects are required for the evaluation of () => A
         - YES, the creation of MyIO does NOT produce the side effects on construction
    */
