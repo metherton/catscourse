@@ -8,6 +8,7 @@ val catsVersion = "2.1.1"
 
 libraryDependencies ++= Seq(
   "org.typelevel" %% "cats-core" % catsVersion,
+  "org.typelevel" %% "cats-effect" % catsVersion,
 )
 
 scalacOptions ++= Seq(
