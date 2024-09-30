@@ -85,5 +85,5 @@ object Resources extends IOApp.Simple {
     _ <- IO.sleep(1.second) >> fib.cancel
   } yield ()
 
-  override def run: IO[Unit] = bracketReadFile("src/main/scala/part3Concurrency/Resources.scala").void
+  override def run: IO[Unit] = resourceFromUrl.void
 }
