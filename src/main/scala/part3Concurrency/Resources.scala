@@ -1,5 +1,6 @@
 package part3Concurrency
 
+import cats.effect.kernel.Outcome.{Canceled, Errored, Succeeded}
 import cats.effect.{IO, IOApp, Resource}
 import utils._
 
@@ -47,7 +48,7 @@ object Resources extends IOApp.Simple {
       - close the scanner
       - if cancelled / throws error, close the scanner
    */
-  def openScanner(path: String): IO[Scanner] =
+  def openFileScanner(path: String): IO[Scanner] =
     IO(new Scanner(new FileReader(new File(path))))
 
   def readLineByLine(scanner: Scanner): IO[Unit] =
@@ -56,7 +57,7 @@ object Resources extends IOApp.Simple {
 
   def bracketReadFile(path: String): IO[Unit] =
     IO(s"opening file at $path") *>
-    openScanner(path).bracket { scanner =>
+    openFileScanner(path).bracket { scanner =>
         readLineByLine(scanner)
     } { scanner =>
       IO(s"closing file at $path").debug1 *> IO(scanner.close())
@@ -68,7 +69,7 @@ object Resources extends IOApp.Simple {
    */
 
   def connFromConfig(path: String): IO[Unit] =
-    openScanner(path)
+    openFileScanner(path)
       .bracket { scanner =>
         // acquire a connection based on a file
         IO(new Connection(scanner.nextLine())).bracket { conn =>
@@ -85,5 +86,60 @@ object Resources extends IOApp.Simple {
     _ <- IO.sleep(1.second) >> fib.cancel
   } yield ()
 
-  override def run: IO[Unit] = resourceFromUrl.void
+  // resources are equivalent to brackets
+  val simpleResource = IO("some resource")
+  val usingResource: String => IO[String] = string => IO(s"using the string: $string").debug1
+  val releaseResource: String => IO[Unit] = string => IO(s"finalizing the string: $string").debug1.void
+
+  val usingResourceWithBracket = simpleResource.bracket(usingResource)(releaseResource)
+  val usingResourceWithResource = Resource.make(simpleResource)(releaseResource).use(usingResource)
+
+  /*
+      Exercise: read a text file with one line every 100 millis, using Resource
+      (refactor the bracket exercise to use Resource)
+   */
+  def getResourceFromFile(path: String) = Resource.make(openFileScanner(path)) { scanner =>
+    IO(s"closing file at $path").debug1 *> IO(scanner.close())
+  }
+
+  def resourceReadFile(path: String) =
+    IO(s"opening file at $path") *>
+    getResourceFromFile(path).use {
+    scanner =>
+      readLineByLine(scanner)
+  }
+
+
+  def cancelReadFile(path: String) = for {
+    fib <- resourceReadFile(path).start
+    _ <- IO.sleep(2.seconds) >> fib.cancel
+  } yield ()
+
+  // nested resources
+  def connFromConfResource(path: String) =
+    Resource.make(IO("opening file").debug1 >> openFileScanner(path))(scanner => IO(s"closing file").debug1 >> IO(scanner.close()))
+      .flatMap((scanner) => Resource.make(IO(new Connection(scanner.nextLine())))(conn => conn.close.void))
+
+  // equivalent
+  def connFromConfResourceClean(path: String) =  for {
+    scanner <- Resource.make(IO("opening file").debug1 >> openFileScanner(path))(scanner => IO(s"closing file").debug1 >> IO(scanner.close()))
+    conn <- Resource.make(IO(new Connection(scanner.nextLine())))(conn => conn.close.void)
+  } yield conn
+
+  val openConnection = connFromConfResource("src/main/resources/connection.txt").use(conn => conn.open >> IO.never)
+
+  val canceledConnection = for {
+    fib <- openConnection.start
+    _ <- IO.sleep(1.second) >> IO("canceling").debug1 >> fib.cancel
+  } yield ()
+  // connection + file will close automatically
+
+  // finalizers to regular IOs
+  val ioWithFinalizer = IO("some resource").debug1.guarantee(IO("freeing resource").debug1.void)
+  val ioWithFinalizerV2 = IO("some resource").debug1.guaranteeCase {
+    case Succeeded(fa) => fa.flatMap(result => IO(s"releasing resource: $result").debug1).void
+    case Errored(e) => IO("nothing to release").debug1.void
+    case Canceled() => IO("resource got canceled, releasing whats left").debug1.void
+  }
+  override def run: IO[Unit] = ioWithFinalizer.void
 }
