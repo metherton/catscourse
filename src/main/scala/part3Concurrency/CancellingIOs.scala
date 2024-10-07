@@ -55,7 +55,7 @@ object CancellingIOs extends IOApp.Simple {
       - verify password, CANNOT be cancelled once its started
    */
 
-  val inputPassword = IO("input password").debug1 >> IO("typeing password").debug1 >> IO.sleep(5.seconds) >> IO("RocktheJVM1!")
+  val inputPassword = IO("input password").debug1 >> IO("typeing password").debug1 >> IO.sleep(2.seconds) >> IO("RocktheJVM1!")
   val verifyPassword = (pw: String) => IO("verifying...").debug1 >> IO.sleep(2.seconds) >> IO(pw == "RocktheJVM1!")
 
   val authFlow: IO[Unit] = IO.uncancelable { poll =>
@@ -77,5 +77,40 @@ object CancellingIOs extends IOApp.Simple {
       Uncancelable calls are MASKS which suppress cancellation
       Poll calls are "gaps opened" in the uncancelable region
    */
-  override def run: IO[Unit] = authProgram
+
+
+  /*
+
+      Exercises
+
+   */
+  // 1
+  val cancelBeforeMol = IO.canceled >> IO(42).debug1
+  val uncancelableMol = IO.uncancelable(_ => IO.canceled >> IO(42).debug1)
+  // uncancelable will eliminate all Cancel points
+
+
+  // 2
+  val invincibleAuthProgram = for {
+    authFib <- IO.uncancelable(_ => authFlow).start
+    _ <- IO.sleep(1.seconds) >> IO("Authentication timeout, attempting cancel...").debug1 >> authFib.cancel
+    _ <- authFib.join
+  } yield ()
+
+  // 3
+  def threeStepProgram(): IO[Unit] = {
+    val sequence = IO.uncancelable { poll =>
+      poll(IO("cancelable").debug1 >> IO.sleep(1.second)) >> IO("Cancelable end").debug1 >>
+        IO("uncancelable").debug1 >> IO.sleep(1.second) >> IO("uncancelable end").debug1 >>
+        poll(IO("second uncancelable").debug1 >> IO.sleep(1.second) >> IO("second cancelable end").debug1)
+    }
+
+    for {
+      fib <- sequence.start
+      _ <- IO.sleep(1500.millis) >> IO("Cancelling").debug1 >> fib.cancel
+      _ <- fib.join
+    } yield ()
+  }
+
+  override def run: IO[Unit] = threeStepProgram()
 }
