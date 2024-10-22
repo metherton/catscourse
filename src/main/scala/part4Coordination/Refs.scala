@@ -141,9 +141,9 @@ object Refs extends IOApp.Simple {
   }
 
   def tickingClockWeird(): IO[Unit] = {
-    val ticks = Ref[IO].of(0)
+    val ticks = Ref[IO].of(0) // IO[Ref]
     def tickingClock: IO[Unit] = for {
-      t <- ticks
+      t <- ticks // ticks will give you a NEW ref
       _ <- IO.sleep(1.second)
       _ <- IO(System.currentTimeMillis()).debug1
       _ <- t.update(_ + 1) // thread safe effect
@@ -151,7 +151,7 @@ object Refs extends IOApp.Simple {
     } yield ()
 
     def printTicks: IO[Unit] = for {
-      t <- ticks
+      t <- ticks // ticks will give you a new REF
       _ <- IO.sleep(5.seconds)
       currentTicks <- t.get
       _ <- IO(s"TICKS: $currentTicks").debug1
