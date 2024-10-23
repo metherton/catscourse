@@ -1,6 +1,7 @@
 package part4Coordination
 
-import cats.effect.{IO, IOApp, Ref}
+import cats.effect
+import cats.effect.{Fiber, IO, IOApp, Outcome, Ref}
 import cats.effect.kernel.Deferred
 import utils._
 import cats.syntax.traverse._
@@ -99,8 +100,78 @@ object Defers extends IOApp.Simple {
     } yield ()
   }
 
+  /**
+   *  Exercises:
+   *  - (medium) write a small alarm notification with two simultaneous IOs
+   *    - one that increments a counter (this is the shared state, use a Ref) every second (a clock)
+   *    - one that waits for the counter to become 10, then prints a message "time's up !"
+   *
+   *     if not sure about how to structure code look at demoDeferred for inspiration
+   *     one IO spawned on some thread and another listening for the counter to become 10 and when it does it outputs a message
+   *
+   *  - (mega hard) implement racePair with Deferred
+   *    - use a Deferred which can hold an Either[outcome for ioa, outcome for iob]
+   *    - start 2 fibers one for each IO
+   *    - on completin (with any status), each IO needs to complete that Deferred
+   *      (hint: use a finalizer from the Resources lesson)
+   *      (hint2: use a guarantee call to make sure the fibers complete the Deferred)
+   *    - what do you do in case of cancellation (the hardest part)
+   *
+   * @return
+   */
+
+  def eggBoiler(): IO[Unit] = {
+    def eggReadyNotification(signal: Deferred[IO, Unit]) = for {
+      _ <- IO("Egg boiling on some other fiber...").debug1
+      _ <- signal.get // blocker
+      _ <- IO(s"EGG READY").debug1
+    } yield ()
+
+    def tickingClock(ticks: Ref[IO, Int], signal: Deferred[IO, Unit]): IO[Unit] = for {
+      _ <- IO.sleep(1.second)
+      count <- ticks.updateAndGet(_ + 1)
+      _ <- IO(count).debug1
+      _ <- if (count >= 10) signal.complete(()) else tickingClock(ticks, signal)
+    } yield ()
+
+    for {
+      counter <- Ref[IO].of(0)
+      signal <- Deferred[IO, Unit]
+      notificationFib <- eggReadyNotification(signal).start
+      clock <- tickingClock(counter, signal).start
+      _ <- notificationFib.join
+      _ <- clock.join
+    } yield ()
+  }
+
+
+  type RaceResult[A, B] = Either[
+    (Outcome[IO, Throwable, A], Fiber[IO, Throwable, B]), // (winner result, loser fiber)
+    (Fiber[IO, Throwable, A], Outcome[IO, Throwable, B]) // (loser fiber, winner result)
+  ]
+  // racing IOs lesson
+
+  type EitherOutcome[A, B] = Either[Outcome[IO, Throwable, A], Outcome[IO, Throwable, B]]
+  def ourRacePair[A, B](ioa: IO[A], iob: IO[B]): IO[RaceResult[A, B]] = IO.uncancelable { poll =>
+    for {
+      signal <- Deferred[IO, EitherOutcome[A, B]]
+      fiba <- ioa.guaranteeCase(outcomeA => signal.complete(Left(outcomeA)).void).start
+      fibb <- iob.guaranteeCase(outcomeB => signal.complete(Right(outcomeB)).void).start
+      result <- poll(signal.get).onCancel {
+        for {
+          cancelFibA <- fiba.cancel.start
+          cancelFibB <- fibb.cancel.start
+          _ <- cancelFibA.join
+          _ <- cancelFibB.join
+        } yield ()
+      } // blocking call - should be cancelable
+    } yield result match {
+      case Left(outcomeA) => Left((outcomeA, fibb))
+      case Right(outcomeB) => Right((fiba, outcomeB))
+    }
+  }
 
 
 
-  override def run: IO[Unit] = fileNotifierWithDeferred()
+  override def run: IO[Unit] = eggBoiler()
 }
