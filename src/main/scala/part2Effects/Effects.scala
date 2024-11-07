@@ -79,6 +79,16 @@ object Effects {
     42
   })
 
+//  val myTime = MyIO(() => system().millis)
+//  def measure[A](computation: MyIO[A]): MyIO[Long] = for {
+//    start <- MyIO(() => system.millis())
+//    _ <- computation
+//    finish <- MyIO(() => system.millis())
+//  } yield finish - start
+//
+//
+//  val myPrintIO = MyIO(() => println("here is something"))
+
   /*
 
       Exercises

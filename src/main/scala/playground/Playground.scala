@@ -1,6 +1,8 @@
 package playground
 
 import cats.Eval
+import cats.effect.IO
+import cats.effect.unsafe.implicits.global
 
 object Playground {
 
@@ -10,11 +12,41 @@ object Playground {
   }
 
 
+
   case class UpdateRequest(anonymousDialing: Option[Boolean])
   case class WorkableUpdateModel(anonymousDialing: Option[Boolean])
   case class WorkerVo(anonymousDialing: Boolean)
   def main(args: Array[String]): Unit = {
+
+    val one = Option(1)
+    val two = Option(2)
+
+    val result = one.map(_ + 3)
+    println(result)
+    val r2 = for {
+      o <- one
+      t <- two
+    } yield o + t
+
+    val r3 = one.flatMap(o => two.map(t => o + t))
+
     println(meaningOfLife.value)
+
+
+    case class Person(name: String, address: String)
+    val mart = Person("martin", "sheffield")
+    val dyls = Person("dylan", "marknesse")
+
+    val people = List(mart, dyls)
+
+    val result1: IO[List[Person]] = IO.delay {
+      println(s"returning $people")
+      people
+    }
+
+
+    println(s"result1: ${result1.unsafeRunSync()}")
+
 
 //    val up1 = UpdateRequest(Some(false))
 //    val wk1 = WorkerVo(false)
