@@ -1,8 +1,6 @@
 package part4Coordination
 
-import cats.effect
-import cats.effect.{Fiber, IO, IOApp, Outcome, Ref}
-import cats.effect.kernel.Deferred
+import cats.effect.{Deferred, Fiber, IO, IOApp, Outcome, Ref}
 import utils._
 import cats.syntax.traverse._
 
