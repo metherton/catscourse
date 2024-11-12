@@ -3,12 +3,11 @@ package part5polymorphic
 import cats.effect.kernel.Outcome.{Canceled, Errored, Succeeded}
 import cats.{Applicative, Monad}
 import cats.effect.{IO, IOApp, MonadCancel, Poll}
-//import utils._
 
 import scala.concurrent.duration._
 object PolymorphicCancellation extends IOApp.Simple {
 
-  trait MyApplicativeError[F[_], E] extends Applicative[E] {
+  trait MyApplicativeError[F[_], E] extends Applicative[F] {
     def raiseError[A](error: E): F[A]
     def handleErrorWith[A](fa: F[A])(f: E => F[A]): F[A]
   }
@@ -83,23 +82,34 @@ object PolymorphicCancellation extends IOApp.Simple {
   def unsafeSleep[F[_], E](duration: FiniteDuration)(implicit mc: MonadCancel[F, E]): F[Unit] =
     mc.pure(Thread.sleep(duration.toMillis))
 
-  val inputPassword = IO("input password").debug1 >> IO("typeing password").debug1 >> IO.sleep(2.seconds) >> IO("RocktheJVM1!")
-  val verifyPassword = (pw: String) => IO("verifying...").debug1 >> IO.sleep(2.seconds) >> IO(pw == "RocktheJVM1!")
+  def inputPassword[F[_], E](implicit mc: MonadCancel[F, E]): F[String] = for {
+    _ <- mc.pure("input password")
+    _ <- mc.pure("typeing password")
+    _ <- unsafeSleep[F, E](5.seconds)
+    pw <- mc.pure("RocktheJVM1!")
+  } yield pw
 
-  val authFlow: IO[Unit] = IO.uncancelable { poll =>
+
+  def verifyPassword[F[_], E](pw: String)(implicit mc: MonadCancel[F, E]): F[Boolean] = for {
+    _ <- mc.pure("verifying...")
+    _ <- unsafeSleep(2.seconds)
+    check <- mc.pure(pw == "RocktheJVM1!")
+  } yield check
+
+  def authFlow[F[_], E](implicit mc: MonadCancel[F, E]): F[Unit] = mc.uncancelable { poll =>
     for {
-      pw <- poll(inputPassword).onCancel(IO("Authentication timed out. Try again later").debug1.void) // this is cancellable
+      pw <- poll(inputPassword).onCancel(mc.pure("Authentication timed out. Try again later").void) // this is cancellable
       verified <- verifyPassword(pw) // This is NOT cancelable
-      _ <- if (verified) IO("Authentication succesful").debug1 // This is NOT cancelable
-      else IO("Authentication failed").debug1
+      _ <- if (verified) mc.pure("Authentication succesful") // This is NOT cancelable
+      else mc.pure("Authentication failed")
     } yield ()
   }
 
-  val authProgram = for {
-    authFib <- authFlow.start
-    _ <- IO.sleep(3.seconds) >> IO("Authentication timeout, attempting cancel...").debug1 >> authFib.cancel
+  val authProgram: IO[Unit] = for {
+    authFib <- authFlow[IO, Throwable].start
+    _ <- IO.sleep(3.seconds) >> IO("Authentication timeout, attempting cancel...") >> authFib.cancel
     _ <- authFib.join
   } yield ()
 
-  override def run: IO[Unit] = ???
+  override def run: IO[Unit] = authProgram
 }
