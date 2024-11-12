@@ -137,10 +137,12 @@ object CDLatch {
       else signal.get // block here
     }
 
-    override def release = state.modify {
-      //case Done => Done -> IO.unit
-      case Live(1, signal) => Done -> signal.complete(()).void
-      case Live(n, signal) => Live(n - 1, signal) -> IO.unit
-    }.flatten.uncancelable
+//    override def release = state.modify {
+//      //case Done => Done -> IO.unit
+//      case Live(1, signal) => Done -> signal.complete(()).void
+//      case Live(n, signal) => Live(n - 1, signal) -> IO.unit
+//    }.flatten.uncancelable
+
+    override def release = ???
   }
 }
