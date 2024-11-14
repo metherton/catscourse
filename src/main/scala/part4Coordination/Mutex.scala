@@ -4,6 +4,7 @@ import cats.effect.kernel.{Concurrent, Deferred, Ref}
 import cats.effect.kernel.Outcome.{Canceled, Errored, Succeeded}
 import cats.effect.{IO, IOApp}
 import cats.syntax.parallel._
+import part4Coordination.MutexV2.State
 
 import scala.concurrent.duration._
 import scala.util.Random
@@ -53,7 +54,7 @@ object MutexV2 {
             case State(locked, queue) =>
               val newQueue = queue.filterNot(_ eq signal)
               val isBlocking = queue.exists(_ eq signal)
-              val decision = if (isBlocking) IO.unit else release // not sure if the concurrent.unit should be io.unit
+              val decision = if (isBlocking) concurrent.unit else release // not sure if the concurrent.unit should be io.unit
               State(locked, newQueue) -> decision
           }.flatten
 
@@ -119,7 +120,9 @@ object Mutex {
             val cleanup = state.modify {
               case State(locked, queue) =>
                 val newQueue = queue.filterNot(_ eq signal)
-                State(locked, newQueue) -> release
+                val isBlocking = queue.exists(_ eq signal)
+                val decision = if (isBlocking) IO.unit else release // not sure if the concurrent.unit should be io.unit
+                State(locked, newQueue) -> decision
             }.flatten
 
             state.modify {
@@ -236,7 +239,7 @@ object MutexPlayground extends IOApp.Simple {
   } yield results
 
   def demoCancelWhileBlocked() = for {
-    mutex <- Mutex.create
+    mutex <- MutexV2.create[IO]
     fib1 <- (IO("[fib1] getting mutex").debug1 >>
       mutex.acquire >>
       IO("[fib1] got the mutex, never releasing").debug1 >>
