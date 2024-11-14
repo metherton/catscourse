@@ -52,7 +52,9 @@ object MutexV2 {
           val cleanup = state.modify {
             case State(locked, queue) =>
               val newQueue = queue.filterNot(_ eq signal)
-              State(locked, newQueue) -> release
+              val isBlocking = queue.exists(_ eq signal)
+              val decision = if (isBlocking) IO.unit else release // not sure if the concurrent.unit should be io.unit
+              State(locked, newQueue) -> decision
           }.flatten
 
           state.modify {
@@ -233,5 +235,29 @@ object MutexPlayground extends IOApp.Simple {
     results <- (1 to 10).toList.parTraverse(id => createCancelingTask(id, mutex))
   } yield results
 
-  override def run: IO[Unit] = demoCancelingTasks().debug1.void
+  def demoCancelWhileBlocked() = for {
+    mutex <- Mutex.create
+    fib1 <- (IO("[fib1] getting mutex").debug1 >>
+      mutex.acquire >>
+      IO("[fib1] got the mutex, never releasing").debug1 >>
+      IO.never).start
+    fib2 <- (IO("[fib2] sleeping").debug1 >>
+      IO.sleep(1.second) >>
+      IO("[fib2] trying to get the mutex").debug1 >>
+      mutex.acquire.onCancel(IO("[fib2] being canceled").debug1.void) >>
+      IO("[fib2] acquired mutex").debug1
+      ).start
+    fib3 <- (IO("[fib3] sleeping").debug1 >>
+      IO.sleep(1500.millis) >>
+      IO("[fib3] trying to get the mutext").debug1 >>
+      mutex.acquire >>
+      IO("[fib3] if this shows then FAIL !!!!").debug1
+      ).start
+    _ <- IO.sleep(2.seconds) >> IO("CANCELING fib2").debug1 >> fib2.cancel
+    _ <- fib1.join
+    _ <- fib2.join
+    _ <- fib3.join
+  } yield ()
+
+  override def run: IO[Unit] = demoCancelWhileBlocked().void
 }
