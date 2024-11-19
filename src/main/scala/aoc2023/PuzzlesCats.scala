@@ -78,8 +78,17 @@ object PuzzlesCats extends IOApp.Simple {
         IO(s"closing file at $path").debug1 *> IO(scanner.close())
       }
 
+  def bracketReadFile5(path: String): IO[Unit] =
+    IO(s"opening file at $path").debug1 *>
+      openFileScanner(path).bracket { scanner =>
+        readLineByLine2(scanner, Map[Int, Int](), 1)
+      } { scanner =>
+        IO(s"closing file at $path").debug1 *> IO(scanner.close())
+      }
+
   override def run: IO[Unit] = {
     //bracketReadFile("src/main/resources/1.txt").void
-    bracketReadFile4("src/main/resources/4.txt").void
+    //bracketReadFile4("src/main/resources/4.txt").void
+    bracketReadFile5("src/main/resources/5.txt").void
   }
 }
