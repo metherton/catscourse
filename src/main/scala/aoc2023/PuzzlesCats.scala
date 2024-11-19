@@ -32,8 +32,18 @@ object PuzzlesCats extends IOApp.Simple {
       val parts = s.split(":")(1).split("\\|").map(s => s.split(" ").filterNot(_ == "").map(_.toInt))
       println(s)
       val n = parts(0).toList.intersect(parts(1).toList).length
-      val map1 = a + (if (a.contains(i)) i -> (a.get(i).get + 1) else i -> 1)
-      val newMap: Map[Int, Int] = ((1 to n).map(j => if (map1.contains(i + j)) i + j -> (map1.get(i + j).get + map1.get(i).get) else i + j -> 1)).toMap
+      val map1 = a + (if (a.contains(i)) {
+        println("should not come in here")
+        i -> (a.get(i).get + 1)
+      } else {
+        i -> 1
+      })
+      val newMap: Map[Int, Int] = ((1 to n).map(j => if (map1.contains(i + j)) {
+        i + j -> (map1.get(i + j).get + map1.get(i).get)
+      } else {
+    //    i + j -> 1
+        i + j -> map1.get(i).get
+      })).toMap
       val evenNewerMap: Map[Int, Int] = map1 ++ newMap
       println(evenNewerMap.map(_._2).sum)
       evenNewerMap
