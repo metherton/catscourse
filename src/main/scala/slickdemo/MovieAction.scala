@@ -2,6 +2,7 @@ package slickdemo
 
 import slick.jdbc.PostgresProfile
 import slick.lifted
+import slickdemo.Connection.db
 
 import java.time.LocalDate
 import scala.concurrent.{Await, Future}
@@ -79,5 +80,33 @@ object Main extends App {
 
   val movies: Future[Seq[Movie]] = Connection.db.run(SlickTables.movieTable.result)
   println(Await.result(movies, 3.seconds))
+
+  def findMovieByName(name: String): Future[Option[Movie]] = {
+    db.run(SlickTables.movieTable.filter(_.name === name).result.headOption)
+  }
+
+  def findMoviesByName(name: String) = {
+    db.run(SlickTables.movieTable.filter(_.name === name).result)
+  }
+
+  val movieSelect = findMoviesByName("The Godfather")
+  println(Await.result(movieSelect, 3.seconds))
+
+
+//  def updateMovie(movieId: Long, movie: Movie): Future[Int] = {
+//    val updateQuery = SlickTables.movieTable.filter(_.id === movieId).update(movie)
+//    db.run(updateQuery)
+//  }
+//
+//  val updateM = updateMovie(7, shawshank)
+//  println(Await.result(updateM, 3.seconds))
+
+  val moviesSelect = findMoviesByName("Shawshank Redemption")
+  println(Await.result(moviesSelect, 3.seconds))
+
+  val movieSelect2 = findMoviesByName("The Godfather")
+  println(Await.result(movieSelect2, 3.seconds))
+
+
 
 }

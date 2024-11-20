@@ -81,10 +81,37 @@ object PuzzlesCats extends IOApp.Simple {
   def bracketReadFile5(path: String): IO[Unit] =
     IO(s"opening file at $path").debug1 *>
       openFileScanner(path).bracket { scanner =>
-        readLineByLine2(scanner, Map[Int, Int](), 1)
+        readLineByLine5(scanner, List())
       } { scanner =>
         IO(s"closing file at $path").debug1 *> IO(scanner.close())
       }
+
+  def readLineByLine5(scanner: Scanner, acc: List[(Long, Boolean)]): IO[Unit] = {
+
+    def calcAcc(l: String, acc: List[(Long, Boolean)]): List[(Long, Boolean)] = {
+      val newAcc: List[(Long, Boolean)] = if (l.startsWith("seeds:")) {
+        l.split(": ")(1).split(" ").map(s => (s.toLong, false)).toList
+      } else if (l.isBlank || l.startsWith("seed") || l.startsWith("soil") || l.startsWith("fert") || l.startsWith("water") || l.startsWith("light") || l.startsWith("temp")  || l.startsWith("hum")) {
+        acc.map(s => (s._1, false))
+      } else {
+        val mapper = l.split(" ").map(_.toLong).toList
+        acc.map(i => if (i._1 >= mapper(1) && i._1 < mapper(1) + mapper(2) && !i._2) (mapper(0) + i._1 - mapper(1), true) else i)
+      }
+      newAcc
+    }
+
+    if (scanner.hasNextLine) {
+      for {
+        l <- IO(scanner.nextLine()).debug1
+        _ <- IO.sleep(1.millis)
+        newAcc = calcAcc(l, acc)
+        _ <- readLineByLine5(scanner, newAcc)
+      } yield ()
+    }
+    else {
+      IO(s"final total is ${acc.map(_._1).min}").debug1 *> IO.unit
+    }
+  }
 
   override def run: IO[Unit] = {
     //bracketReadFile("src/main/resources/1.txt").void
