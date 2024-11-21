@@ -8,6 +8,16 @@ import java.time.LocalDate
 import scala.concurrent.{Await, Future}
 import scala.util.{Failure, Success}
 
+/**
+ *   To use this we first need to run the postgress docker file in ~/Developer/projects/postgress.. then docker-compose up
+ *
+ *    https://rockthejvm.com/articles/getting-started-with-scala-slick/
+ *
+ *
+ *
+ * @param profile
+ */
+
 class MovieAction(val profile: PostgresProfile) {
 
   import profile.api._
