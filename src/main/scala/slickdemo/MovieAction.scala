@@ -1,17 +1,13 @@
 package slickdemo
 
-import cats.effect.{IO, IOApp}
-import cats.effect.unsafe.implicits.global
-import utils._
+import cats.effect.IO
+import cats.effect.unsafe.IORuntime
 import slick.jdbc.PostgresProfile
-import slick.lifted
 import slickdemo.Connection.db
 import utilsScala2.general.DebugWrapper
 
 import java.time.LocalDate
-import java.util.concurrent.Executors
-import scala.concurrent.{Await, ExecutionContext, Future}
-import scala.util.{Failure, Success}
+import scala.concurrent.Future
 
 /**
  *   To use this we first need to run the postgress docker file in ~/Developer/projects/postgress.. then docker-compose up
@@ -40,14 +36,12 @@ class MovieAction(val profile: PostgresProfile) {
 
 object SlickTables extends MovieAction(PostgresProfile)
 
-import PostgresProfile.profile.api._
+import slick.jdbc.PostgresProfile.profile.api._
 object Connection {
   val db = Database.forConfig("postgres")
 }
 
-object Main extends IOApp.Simple {
-
-  import scala.concurrent.ExecutionContext.Implicits.global
+object Main extends App {
 
   val shawshank = Movie(1L, "Shawshank Redemption", LocalDate.of(1994, 4, 2), 162)
   val godfather = Movie(2L, "The Godfather", LocalDate.of(1994, 4, 2), 162)
@@ -59,8 +53,6 @@ object Main extends IOApp.Simple {
   }
 
 //  val result = insertMovie(shawshank)
-
-  import scala.concurrent.duration._
 
 //  println(Await.result(result, 3.seconds))
 
@@ -134,8 +126,6 @@ object Main extends IOApp.Simple {
   //  val f1 = Connection.db.run(insertBatchQuery)
   //  println(Await.result(f1, 3.seconds))
 
-  import cats.effect.unsafe.implicits.global
-
 
 
   //res.unsafeRunSync()
@@ -144,13 +134,14 @@ object Main extends IOApp.Simple {
     for {
       _ <- IO(db.run(SlickTables.movieTable.delete))
       _ <- IO.fromFuture(IO(insertMovie(godfather)))
-      s <- IO.fromFuture(IO(db.run(SlickTables.movieTable.filter(_.name === "The Godfather").result)))
+      s <- IO.fromFuture(IO(db.run(SlickTables.movieTable.filter(_.name === "The Godfather").result))).debug1
     } yield s
   }
 
-  override def run: IO[Unit] = {
+  //override def run: IO[Unit] = {
 
     //val i = IO.fromFuture(IO(insertMovie(godfather)))
-    doQueries().debug1.void
-  }
+  implicit val runtime: IORuntime = IORuntime.global
+    doQueries().unsafeRunSync().debug1
+ // }
 }
