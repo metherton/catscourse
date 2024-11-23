@@ -140,18 +140,17 @@ object Main extends IOApp.Simple {
 
   //res.unsafeRunSync()
 
+  def doQueries() = {
+    for {
+      _ <- IO(db.run(SlickTables.movieTable.delete))
+      _ <- IO.fromFuture(IO(insertMovie(godfather)))
+      s <- IO.fromFuture(IO(db.run(SlickTables.movieTable.filter(_.name === "The Godfather").result)))
+    } yield s
+  }
 
   override def run: IO[Unit] = {
-    val res = for {
-      _ <- IO(Connection.db.run(SlickTables.movieTable.returning(SlickTables.movieTable) ++= Seq(godfather, godfather, shawshank)))
-      recs <- IO(findMoviesByName("The Godfather"))
-    } yield recs
-    implicit val ec = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(8))
 
-    import scala.concurrent.duration._
-
-    res.flatMap(x => IO.pure(x.foreach(f => {
-      println(f)}))).debug1.void
-
+    //val i = IO.fromFuture(IO(insertMovie(godfather)))
+    doQueries().debug1.void
   }
 }
