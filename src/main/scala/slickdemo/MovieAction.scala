@@ -1,6 +1,6 @@
 package slickdemo
 
-import cats.effect.IO
+import cats.effect.{IO, IOApp}
 import cats.effect.unsafe.IORuntime
 import slick.jdbc.PostgresProfile
 import slickdemo.Connection.db
@@ -41,7 +41,7 @@ object Connection {
   val db = Database.forConfig("postgres")
 }
 
-object Main extends App {
+object Main extends IOApp.Simple {
 
   val shawshank = Movie(1L, "Shawshank Redemption", LocalDate.of(1994, 4, 2), 162)
   val godfather = Movie(2L, "The Godfather", LocalDate.of(1994, 4, 2), 162)
@@ -138,10 +138,10 @@ object Main extends App {
     } yield s
   }
 
-  //override def run: IO[Unit] = {
+  override def run: IO[Unit] = {
 
     //val i = IO.fromFuture(IO(insertMovie(godfather)))
-  implicit val runtime: IORuntime = IORuntime.global
-    doQueries().unsafeRunSync().debug1
- // }
+  //implicit val runtime: IORuntime = IORuntime.global
+    doQueries().debug1.void
+  }
 }

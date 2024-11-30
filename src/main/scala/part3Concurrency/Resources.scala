@@ -141,5 +141,10 @@ object Resources extends IOApp.Simple {
     case Errored(e) => IO("nothing to release").debug1.void
     case Canceled() => IO("resource got canceled, releasing whats left").debug1.void
   }
-  override def run: IO[Unit] = ioWithFinalizer.void
+  override def run: IO[Unit] = {
+    resourceReadFile("/Users/martinetherton/Developer/projects/be/scala/cats-course/src/main/resources/aoc2024/01.txt")
+    resourceReadFile("/Users/martinetherton/Developer/projects/be/scala/cats-course/src/main/resources/aoc2024/01.txt")
+
+    //ioWithFinalizer.void
+  }
 }

@@ -18,6 +18,9 @@ object Playground {
   case class WorkerVo(anonymousDialing: Boolean)
   def main(args: Array[String]): Unit = {
 
+    val myFile = "04.txt"
+    println(myFile.split(".")(1))
+
     val one = Option(1)
     val two = Option(2)
 

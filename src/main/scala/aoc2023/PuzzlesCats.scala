@@ -158,9 +158,9 @@ object PuzzlesCats extends IOApp.Simple {
   }
 
   override def run: IO[Unit] = {
-    //bracketReadFile("src/main/resources/1.txt").void
-    //bracketReadFile4("src/main/resources/4.txt").void
-    //bracketReadFile5a("src/main/resources/5.txt").void
-    bracketReadFile5b("src/main/resources/5.txt").void
+    //bracketReadFile("src/main/resources/01.txt").void
+    //bracketReadFile4("src/main/resources/04.txt").void
+    //bracketReadFile5a("src/main/resources/05.txt").void
+    bracketReadFile("src/main/resources/01.txt").void
   }
 }
