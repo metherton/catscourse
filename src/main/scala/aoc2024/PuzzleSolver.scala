@@ -159,8 +159,8 @@ object PuzzleSolver2b extends IOApp.Simple {
       case h1 :: h2 :: s if ((h1 < h2 && lessThan && ((h1 - h2).abs >= 1 && (h1 - h2).abs <= 3))) =>  loop(h2 :: s, true, count)
       case h1 :: h2 :: s if ((h1 > h2 && !lessThan && ((h1 - h2).abs >= 1 && (h1 - h2).abs <= 3))) =>  loop(h2 :: s, false, count)
       // more than 2 elements and sorting is good and maagnitued is bad
-      case h1 :: h2 :: h3 :: s if ((h1 < h2 && lessThan && count < 1)) =>  loop(h2 :: s, true, count + 1)
-      case h1 :: h2 :: h3 :: s if ((h1 > h2 && !lessThan && count < 1)) =>  loop(h2 :: s, false, count + 1)
+      case h1 :: h2 :: h3 :: s if ((h1 < h2 && lessThan && count < 1)) =>  loop(h1 :: h3 :: s, true, count + 1)
+      case h1 :: h2 :: h3 :: s if ((h1 > h2 && !lessThan && count < 1)) =>  loop(h1 :: h3 :: s, false, count + 1)
       // now we need to look ahead and check the difference - first check for sorting
       case h1 :: h2 :: s if (h1 >= h2 && lessThan && count < 1) =>  loop(h2 :: s, true, count + 1)
       case h1 :: h2 :: s if (h1 <= h2 && !lessThan && count < 1) =>  loop(h2 :: s, false, count + 1)
