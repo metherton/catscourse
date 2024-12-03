@@ -146,24 +146,29 @@ object PuzzleSolver2b extends IOApp.Simple {
 
 
   def checkNumbers(n: List[Int], i: Int): Boolean = {
+    def withinRange(h1: Int, h2: Int): Boolean = {
+      if ((h1 - h2).abs >= 1 && (h1 - h2).abs <= 3) true else false
+    }
+    def isOrdered(h1: Int, h2: Int, lessThan: Boolean): Boolean = {
+      if (lessThan) {
+        h1 < h2
+      } else {
+        h1 > h2
+      }
+    }
+    def allowedDiscrepancies(count: Int): Boolean = {
+      count < 1
+    }
+
     @tailrec
     def loop(acc: List[Int], lessThan: Boolean, count: Int): Boolean = acc match {
       // list is empty
       case Nil => true
-      // last element in list
       case _ :: Nil => true
-      // last 2 elements are sorted or we did not have any discrepancy yet
-      case h1 :: h2 :: Nil if ((h1 < h2 && lessThan && ((h1 - h2).abs >= 1 && (h1 - h2).abs <= 3)) || count < 1) =>  true
-      case h1 :: h2 :: Nil if ((h1 > h2 && !lessThan && ((h1 - h2).abs >= 1 && (h1 - h2).abs <= 3)) || count < 1) =>  true
-      // more than 2 elements and sorting is good and maagnitued is good
-      case h1 :: h2 :: s if ((h1 < h2 && lessThan && ((h1 - h2).abs >= 1 && (h1 - h2).abs <= 3))) =>  loop(h2 :: s, true, count)
-      case h1 :: h2 :: s if ((h1 > h2 && !lessThan && ((h1 - h2).abs >= 1 && (h1 - h2).abs <= 3))) =>  loop(h2 :: s, false, count)
-      // more than 2 elements and sorting is good and maagnitued is bad
-      case h1 :: h2 :: h3 :: s if ((h1 < h2 && lessThan && count < 1)) =>  loop(h1 :: h3 :: s, true, count + 1)
-      case h1 :: h2 :: h3 :: s if ((h1 > h2 && !lessThan && count < 1)) =>  loop(h1 :: h3 :: s, false, count + 1)
-      // now we need to look ahead and check the difference - first check for sorting
-      case h1 :: h2 :: s if (h1 >= h2 && lessThan && count < 1) =>  loop(h2 :: s, true, count + 1)
-      case h1 :: h2 :: s if (h1 <= h2 && !lessThan && count < 1) =>  loop(h2 :: s, false, count + 1)
+      case h1 :: h2 :: Nil if (isOrdered(h1, h2, lessThan)  && withinRange(h1, h2))  || allowedDiscrepancies(count) => true
+      case h1 :: h2 :: h3 :: s if ((isOrdered(h1, h2, lessThan) && withinRange(h1, h2)) && (isOrdered(h2, h3, lessThan) && withinRange(h2, h3))) => loop(h2 :: h3 :: s, lessThan, count)
+      case h1 :: h2 :: h3 :: s if ((isOrdered(h1, h2, lessThan) && withinRange(h1, h2)) && !(isOrdered(h2, h3, lessThan) && withinRange(h2, h3)) && allowedDiscrepancies(count)) => loop(h1 :: h2 :: s, lessThan, count + 1)
+      case h1 :: h2 :: h3 :: s if (!(isOrdered(h1, h2, lessThan) && withinRange(h1, h2)) && (isOrdered(h2, h3, lessThan) && withinRange(h2, h3)) && allowedDiscrepancies(count)) => loop(h2 :: h3 :: s, lessThan, count + 1)
       case _ => false
     }
     if (n.length >= 4) {
