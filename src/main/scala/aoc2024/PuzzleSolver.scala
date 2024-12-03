@@ -8,6 +8,7 @@ import java.io.File
 import java.util.Scanner
 import scala.annotation.tailrec
 import scala.concurrent.duration._
+import scala.util.matching.Regex
 
 object PuzzleSolver1a extends IOApp.Simple {
 
@@ -210,6 +211,131 @@ object PuzzleSolver2b extends IOApp.Simple {
     val inputFile = new File("/Users/martinetherton/Developer/projects/be/scala/cats-course/src/main/resources/aoc2024/2.txt")
 
     resourceReadFile2b(inputFile.getAbsolutePath)
+  }
+
+}
+
+
+object PuzzleSolver3a extends IOApp.Simple {
+
+
+  def checkNumbers(n: List[Int], i: Int): Boolean = {
+    def withinRange(h1: Int, h2: Int): Boolean = {
+      if ((h1 - h2).abs >= 1 && (h1 - h2).abs <= 3) true else false
+    }
+    def isOrdered(h1: Int, h2: Int, lessThan: Boolean): Boolean = {
+      if (lessThan) {
+        h1 < h2
+      } else {
+        h1 > h2
+      }
+    }
+    def allowedDiscrepancies(count: Int): Boolean = {
+      count < 1
+    }
+
+    @tailrec
+    def loop(acc: List[Int], lessThan: Boolean, count: Int): Boolean = acc match {
+      // list is empty
+      case Nil => true
+      case _ :: Nil => true
+      case h1 :: h2 :: Nil if (isOrdered(h1, h2, lessThan)  && withinRange(h1, h2))  || allowedDiscrepancies(count) => true
+      case h1 :: h2 :: h3 :: s if ((isOrdered(h1, h2, lessThan) && withinRange(h1, h2)) && (isOrdered(h2, h3, lessThan) && withinRange(h2, h3))) => loop(h2 :: h3 :: s, lessThan, count)
+      case h1 :: h2 :: h3 :: s if (!(isOrdered(h1, h2, lessThan) && withinRange(h1, h2)) && (isOrdered(h1, h3, lessThan) && withinRange(h1, h3)) && allowedDiscrepancies(count)) => loop(h1 :: h3 :: s, lessThan, count + 1)
+      case h1 :: h2 :: h3 :: s if ((isOrdered(h1, h2, lessThan) && withinRange(h1, h2)) && !(isOrdered(h2, h3, lessThan) && withinRange(h2, h3)) && allowedDiscrepancies(count)) => loop(h1 :: h2 :: s, lessThan, count + 1)
+      case h1 :: h2 :: h3 :: s if (!(isOrdered(h1, h2, lessThan) && withinRange(h1, h2)) && (isOrdered(h2, h3, lessThan) && withinRange(h2, h3)) && allowedDiscrepancies(count)) => loop(h2 :: h3 :: s, lessThan, count + 1)
+      case _ => false
+    }
+    if (n.length >= 4) {
+      if (((n(0) < n(1)) && (n(1) < n(2)) || (n(0) < n(1)) && (n(2) < n(3))  || (n(1) < n(2)) && (n(2) < n(3)))) loop(n, true, i) else loop(n, false, i)
+    } else {
+      println("some array with only 4 or less")
+      true
+    }
+  }
+
+  def readLineByLine3a(scanner: Scanner, acc: List[Int]): IO[Unit] = {
+    def getAmount(l: String): Int = {
+      val mulPattern: Regex = """mul\(\d{1,3},\d{1,3}\)""".r
+      val result = mulPattern.findAllIn(l).toList
+      val newr = for {
+        a <- result
+        r = a.substring(4).substring(0, a.length - 5).split(",").map(_.toInt).toList.product
+      } yield r
+      newr.sum
+    }
+    if (scanner.hasNextLine) {
+      for {
+        l <- IO(scanner.nextLine()).debug1
+        _ <- IO.sleep(1.millis)
+        amount = getAmount(l)
+        _ <- readLineByLine3a(scanner, amount :: acc)
+      } yield ()
+    }
+    else {
+      //      val s = acc.map(_._2).sorted
+      //      val z = f.zip(s)
+      //      val diffs = z.map(t => (t._2 - t._1).abs).sum
+      println(acc.sum)
+      IO(s"final total is ...").debug1 *> IO.unit
+    }
+  }
+
+  def resourceReadFile3a(path: String): IO[Unit] =
+    IO(s"opening file at $path") *>
+      getResourceFromFile(path).use {
+        scanner =>
+          readLineByLine3a(scanner, List())
+      }
+
+  override def run: IO[Unit] = {
+    val inputFile = new File("/Users/martinetherton/Developer/projects/be/scala/cats-course/src/main/resources/aoc2024/3.txt")
+
+    resourceReadFile3a(inputFile.getAbsolutePath)
+  }
+
+}
+
+object PuzzleSolver3b extends IOApp.Simple {
+
+
+  def readLineByLine3b(scanner: Scanner, acc: List[Int]): IO[Unit] = {
+    def getAmount(l: String): Int = {
+      val mulPattern: Regex = """(mul\(\d{1,3},\d{1,3}\))|(don't\(\))|(do\(\))""".r
+      val result = mulPattern.findAllIn(l).toList
+      val newr = for {
+        a <- result
+//        r = a.substring(4).substring(0, a.length - 5).split(",").map(_.toInt).toList.product
+      } yield a
+
+      //newr.sum
+      1
+    }
+    if (scanner.hasNextLine) {
+      for {
+        l <- IO(scanner.nextLine()).debug1
+        _ <- IO.sleep(1.millis)
+        amount = getAmount(l)
+        _ <- readLineByLine3b(scanner, amount :: acc)
+      } yield ()
+    }
+    else {
+      println(acc.sum)
+      IO(s"final total is ...").debug1 *> IO.unit
+    }
+  }
+
+  def resourceReadFile3b(path: String): IO[Unit] =
+    IO(s"opening file at $path") *>
+      getResourceFromFile(path).use {
+        scanner =>
+          readLineByLine3b(scanner, List())
+      }
+
+  override def run: IO[Unit] = {
+    val inputFile = new File("/Users/martinetherton/Developer/projects/be/scala/cats-course/src/main/resources/aoc2024/3.txt")
+
+    resourceReadFile3b(inputFile.getAbsolutePath)
   }
 
 }
