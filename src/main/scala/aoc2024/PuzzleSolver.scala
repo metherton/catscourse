@@ -435,3 +435,50 @@ object PuzzleSolver4b extends IOApp.Simple {
   }
 
 }
+
+object PuzzleSolver5a extends IOApp.Simple {
+
+  def readLineByLine5a(scanner: Scanner, breakReached: Boolean, rules: List[(Int, Int)], updates: List[String], acc: Int): IO[Unit] = {
+
+    def determineValue(l: String): Int = {
+      val updates = l.split(",").toList.map(_.toInt)
+      val result = updates.foldLeft((true, updates.tail))((acc, x) => {
+        val mappedLeft = rules.filter((tup) => tup._1 == x)
+        val mappedRight = rules.filter((tup) => tup._2 == x)
+        val stillTrue = acc._2.toSet.intersect(mappedLeft.map(_._2).toSet).size == acc._2.toSet.size
+        val notInOther = acc._2.toSet.intersect(mappedRight.map(_._1).toSet).size == 0
+        (stillTrue && notInOther && acc._1, if (acc._2.size > 0)acc._2.tail else List())
+      })
+      if (result._1) updates(updates.size / 2) else 0
+    }
+
+    if (scanner.hasNextLine) {
+      for {
+        l <- IO(scanner.nextLine()).debug1
+        c = if (breakReached) determineValue(l) else 0
+        breakNowReached = if (l.isBlank || breakReached) true else false
+        _ <- IO.sleep(1.millis)
+        tup = if (!breakNowReached) {val t = l.split('|');val tInt = (t(0).toInt, t(1).toInt);tInt;} else (0, 0)
+        _ <- readLineByLine5a(scanner, breakNowReached, if (!breakNowReached) tup :: rules else rules, updates, acc + c)
+      } yield ()
+    }
+    else {
+      println(s"Total: $acc")
+      IO(s"final total is ...").debug1 *> IO.unit
+    }
+  }
+
+  def resourceReadFile5a(path: String): IO[Unit] =
+    IO(s"opening file at $path") *>
+      getResourceFromFile(path).use {
+        scanner =>
+          readLineByLine5a(scanner, false, List(), List(), 0)
+      }
+
+  override def run: IO[Unit] = {
+    val inputFile = new File("/Users/martinetherton/Developer/projects/be/scala/cats-course/src/main/resources/aoc2024/5.txt")
+
+    resourceReadFile5a(inputFile.getAbsolutePath)
+  }
+
+}
