@@ -543,3 +543,97 @@ object PuzzleSolver5b extends IOApp.Simple {
     resourceReadFile5b(inputFile.getAbsolutePath)
   }
 }
+
+object PuzzleSolver6a extends IOApp.Simple {
+
+  case class State(numRows: Int, numColumns: Int, startPosition: (Int, Int), obstacles: Map[Int, List[Int]])
+  def readLineByLine6a(scanner: Scanner, state: State) : IO[Unit] = {
+
+    def getStartPosition(chars: List[Char]): (Boolean, Int) = {
+      def loop(s: List[Char], found: Boolean, i: Int): (Boolean, Int) = s match {
+        case Nil => (found, i)
+        case h :: t if h == '^' => (true, i)
+        case h :: t => loop(t, found, i + 1)
+      }
+      loop(chars, false, 0)
+    }
+
+    def getObstacles(chars: List[Char]): List[Int] = {
+      def loop(s: List[Char], acc: List[Int], i: Int): List[Int] = s match {
+        case Nil => acc
+        case h :: t if h == '#' => loop(t, i :: acc, i + 1)
+        case h :: t => loop(t, acc, i + 1)
+      }
+      loop(chars, List(), 0)
+    }
+
+    if (scanner.hasNextLine) {
+      for {
+        l <- IO(scanner.nextLine()).debug1
+        _ <- IO.sleep(1.millis)
+        startPos = getStartPosition(l.toList)
+        obs = state.numRows -> getObstacles(l.toList)
+        _ <- readLineByLine6a(scanner, state.copy(numRows = state.numRows + 1, numColumns = l.size, startPosition = if (startPos._1) (state.numRows, startPos._2) else state.startPosition, obstacles = state.obstacles + obs))
+      } yield ()
+    }
+    else {
+      println(s"Total: $state")
+      // Now we need to calculate the route
+      def move(position: (Int, Int), points: Set[(Int, Int)], direction: String): Set[(Int, Int)] = {
+        if ((position._1 >= state.numRows - 1 && direction == "down") || (position._2 - 1 >= state.numColumns && direction == "right") || (position._1 - 1 < 0 && direction == "up") || (position._2 - 1 < 0 && direction == "left")) {
+          points
+        } else {
+          if (direction == "up") {
+            if (state.obstacles(position._1 - 1).contains(position._2)) {
+              val newPosition = (position._1, position._2 + 1)
+              move(newPosition, points + newPosition, "right")
+            } else {
+              val newPosition = (position._1 - 1, position._2)
+              move(newPosition, points + newPosition, "up")
+            }
+          } else if (direction == "right") {
+            if (state.obstacles(position._1).contains(position._2 + 1)) {
+              val newPosition = (position._1 + 1, position._2)
+              move(newPosition, points + newPosition, "down")
+            } else {
+              val newPosition = (position._1, position._2 + 1)
+              move(newPosition, points + newPosition, "right")
+            }
+          } else if (direction == "left") {
+            if (state.obstacles(position._1).contains(position._2 - 1)) {
+              val newPosition = (position._1 - 1, position._2)
+              move(newPosition, points + newPosition, "up")
+            } else {
+              val newPosition = (position._1, position._2 - 1)
+              move(newPosition, points + newPosition, "left")
+            }
+          } else {
+            if (state.obstacles(position._1 + 1).contains(position._2)) {
+              val newPosition = (position._1, position._2 - 1)
+              move(newPosition, points + newPosition, "left")
+            } else {
+              val newPosition = (position._1 + 1, position._2)
+              move(newPosition, points + newPosition, "down")
+            }
+          }
+        }
+      }
+
+      val count = move(state.startPosition, Set[(Int, Int)](), "up")
+
+      IO(s"final total is ...${count.size}").debug1 *> IO.unit
+    }
+  }
+
+  def resourceReadFile6a(path: String): IO[Unit] =
+    IO(s"opening file at $path") *>
+      getResourceFromFile(path).use {
+        scanner =>
+          readLineByLine6a(scanner, State(0, 0, (0,0), Map()))
+      }
+
+  override def run: IO[Unit] = {
+    val inputFile = new File("/Users/martinetherton/Developer/projects/be/scala/cats-course/src/main/resources/aoc2024/6.txt")
+    resourceReadFile6a(inputFile.getAbsolutePath)
+  }
+}
