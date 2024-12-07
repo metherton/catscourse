@@ -580,9 +580,60 @@ object PuzzleSolver6a extends IOApp.Simple {
       println(s"Total: $state")
       // Now we need to calculate the route
       def move(position: (Int, Int), points: Set[(Int, Int)], direction: String): Set[(Int, Int)] = {
-        if ((position._1 >= state.numRows - 1 && direction == "down") || (position._2 - 1 >= state.numColumns && direction == "right") || (position._1 - 1 < 0 && direction == "up") || (position._2 - 1 < 0 && direction == "left")) {
+
+        def determineNewPosition(p: (Int, Int), direction: String): ((Int, Int), String) = {
+          if (direction == "up") {
+            if (state.obstacles(position._1 - 1).contains(position._2)) {
+              val newPosition = (position._1, position._2 + 1)
+              (newPosition, "right")
+            } else {
+              val newPosition = (position._1 - 1, position._2)
+              (newPosition, "up")
+            }
+          } else if (direction == "right") {
+            if (state.obstacles(position._1).contains(position._2 + 1)) {
+              val newPosition = (position._1 + 1, position._2)
+              (newPosition, "down")
+            } else {
+              val newPosition = (position._1, position._2 + 1)
+              (newPosition, "right")
+            }
+          } else if (direction == "left") {
+            if (state.obstacles(position._1).contains(position._2 - 1)) {
+              val newPosition = (position._1 - 1, position._2)
+              (newPosition, "up")
+            } else {
+              val newPosition = (position._1, position._2 - 1)
+              (newPosition, "left")
+            }
+          } else {
+            if (state.obstacles(position._1 + 1).contains(position._2)) {
+              val newPosition = (position._1, position._2 - 1)
+              (newPosition, "left")
+            } else {
+              val newPosition = (position._1 + 1, position._2)
+              (newPosition, "down")
+            }
+          }
+        }
+
+        def isSafe(newV: ((Int, Int), String), oldDirection: String): Boolean = newV._2 match {
+          case "up" if oldDirection != "up" && state.obstacles(newV._1._1).contains(newV._1._2) => false
+          case "right" if oldDirection != "right" && state.obstacles(newV._1._1).contains(newV._1._2) => false
+          case "left" if oldDirection != "left" && state.obstacles(newV._1._1).contains(newV._1._2) => false
+          case "down" if oldDirection != "down" && state.obstacles(newV._1._1).contains(newV._1._2) => false
+          case _ => true
+        }
+
+        if ((position._1 >= state.numRows && direction == "down") || (position._2 >= state.numColumns && direction == "right") || (position._1 - 1 == 0 && direction == "up") || (position._2 < 0 && direction == "left")) {
           points
         } else {
+
+//          val v = determineNewPosition(position, direction)
+//          val safe = isSafe(v, direction)
+//          if (!safe) {
+//            println(s"point $position to ${v._1} in direction ${v._2} is not safe")
+//          }
           if (direction == "up") {
             if (state.obstacles(position._1 - 1).contains(position._2)) {
               val newPosition = (position._1, position._2 + 1)
