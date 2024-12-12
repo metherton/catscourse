@@ -617,23 +617,9 @@ object PuzzleSolver6a extends IOApp.Simple {
           }
         }
 
-        def isSafe(newV: ((Int, Int), String), oldDirection: String): Boolean = newV._2 match {
-          case "up" if oldDirection != "up" && state.obstacles(newV._1._1).contains(newV._1._2) => false
-          case "right" if oldDirection != "right" && state.obstacles(newV._1._1).contains(newV._1._2) => false
-          case "left" if oldDirection != "left" && state.obstacles(newV._1._1).contains(newV._1._2) => false
-          case "down" if oldDirection != "down" && state.obstacles(newV._1._1).contains(newV._1._2) => false
-          case _ => true
-        }
-
-        if ((position._1 >= state.numRows && direction == "down") || (position._2 >= state.numColumns && direction == "right") || (position._1 - 1 == 0 && direction == "up") || (position._2 < 0 && direction == "left")) {
+        if ((position._1 >= state.numRows - 1 && direction == "down") || (position._2 >= state.numColumns && direction == "right") || (position._1 - 1 < 0 && direction == "up") || (position._2 < 0 && direction == "left")) {
           points
         } else {
-
-//          val v = determineNewPosition(position, direction)
-//          val safe = isSafe(v, direction)
-//          if (!safe) {
-//            println(s"point $position to ${v._1} in direction ${v._2} is not safe")
-//          }
           if (direction == "up") {
             if (state.obstacles(position._1 - 1).contains(position._2)) {
               val newPosition = (position._1, position._2 + 1)
@@ -686,5 +672,150 @@ object PuzzleSolver6a extends IOApp.Simple {
   override def run: IO[Unit] = {
     val inputFile = new File("/Users/martinetherton/Developer/projects/be/scala/cats-course/src/main/resources/aoc2024/6.txt")
     resourceReadFile6a(inputFile.getAbsolutePath)
+  }
+}
+
+
+object PuzzleSolver6b extends IOApp.Simple {
+
+  case class State(numRows: Int, numColumns: Int, startPosition: (Int, Int), obstacles: Map[Int, List[Int]])
+  def readLineByLine6b(scanner: Scanner, state: State) : IO[Unit] = {
+
+    def getStartPosition(chars: List[Char]): (Boolean, Int) = {
+      def loop(s: List[Char], found: Boolean, i: Int): (Boolean, Int) = s match {
+        case Nil => (found, i)
+        case h :: t if h == '^' => (true, i)
+        case h :: t => loop(t, found, i + 1)
+      }
+      loop(chars, false, 0)
+    }
+
+    def getObstacles(chars: List[Char]): List[Int] = {
+      def loop(s: List[Char], acc: List[Int], i: Int): List[Int] = s match {
+        case Nil => acc
+        case h :: t if h == '#' => loop(t, i :: acc, i + 1)
+        case h :: t => loop(t, acc, i + 1)
+      }
+      loop(chars, List(), 0)
+    }
+
+    if (scanner.hasNextLine) {
+      for {
+        l <- IO(scanner.nextLine()).debug1
+        _ <- IO.sleep(1.millis)
+        startPos = getStartPosition(l.toList)
+        obs = state.numRows -> getObstacles(l.toList)
+        _ <- readLineByLine6b(scanner, state.copy(numRows = state.numRows + 1, numColumns = l.size, startPosition = if (startPos._1) (state.numRows, startPos._2) else state.startPosition, obstacles = state.obstacles + obs))
+      } yield ()
+    }
+    else {
+      println(s"Total: $state")
+      // Now we need to calculate the route
+      def move(vector: ((Int, Int), String), points: List[((Int, Int), String)], direction: String, blockers: List[(Int, Int)]): List[((Int, Int), String)] = {
+
+        def isNextABlocker(v: ((Int, Int), String)) = ???
+        if ((vector._1._1 >= state.numRows - 1 && direction == "down") || (vector._1._2 >= state.numColumns && direction == "right") || (vector._1._1 - 1 < 0 && direction == "up") || (vector._1._2 < 0 && direction == "left")) {
+          points
+        } else {
+          if (direction == "up") {
+            if (state.obstacles(vector._1._1 - 1).contains(vector._1._2)) {
+              val newPosition = ((vector._1._1, vector._1._2 + 1), "right")
+              move(newPosition, newPosition :: points, "right", blockers)
+            } else {
+              val newPosition = ((vector._1._1 - 1, vector._1._2), "up")
+              move(newPosition, newPosition :: points, "up", blockers)
+            }
+          } else if (direction == "right") {
+            if (state.obstacles(vector._1._1).contains(vector._1._2 + 1)) {
+              val newPosition = ((vector._1._1 + 1, vector._1._2), "down")
+              move(newPosition, newPosition :: points, "down", blockers)
+            } else {
+              val newPosition = ((vector._1._1, vector._1._2 + 1), "right")
+              move(newPosition, newPosition :: points, "right", blockers)
+            }
+          } else if (direction == "left") {
+            if (state.obstacles(vector._1._1).contains(vector._1._2 - 1)) {
+              val newPosition = ((vector._1._1 - 1, vector._1._2), "up")
+              move(newPosition, newPosition :: points, "up", blockers)
+            } else {
+              val newPosition = ((vector._1._1, vector._1._2 - 1), "left")
+              move(newPosition, newPosition :: points, "left", blockers)
+            }
+          } else {
+            if (state.obstacles(vector._1._1 + 1).contains(vector._1._2)) {
+              val newPosition = ((vector._1._1, vector._1._2 - 1), "left")
+              move(newPosition, newPosition :: points, "left", blockers)
+            } else {
+              val newPosition = ((vector._1._1 + 1, vector._1._2), "down")
+              move(newPosition, newPosition :: points, "down", blockers)
+            }
+          }
+        }
+      }
+
+      def getFirstObstacle(t: ((Int, Int), String)): Int = t._2 match {
+        case "up" => {
+          val obs = state.obstacles(t._1._1 + 1).filter(x => x > t._1._2).sorted.head
+          obs
+        }
+        case "down" => {
+          val obs = state.obstacles(t._1._1).filter(x => x < t._1._2).sorted.reverse.head
+          obs
+        }
+        case "left" => {
+          val obs = state.obstacles(t._1._1).filter(x => x < t._1._2).sorted.reverse.head
+          obs
+        }
+        case _ => {
+          val obs = state.obstacles(t._1._1).filter(x => x < t._1._2).sorted.reverse.head
+          obs
+        }
+      }
+
+
+
+
+
+      val records: List[((Int, Int), String)] = move((state.startPosition, "up"), List[((Int, Int), String)](), "up", List[(Int, Int)]())
+
+      val count = records.map(s => s._1).toSet
+
+      def causesInfiniteLoop(t: ((Int, Int), String)): Boolean = t._2 match {
+        case "up" => records.filter(d => {
+          d._2 == "right" && d._1._1 == t._1._1 + 1 && Range.inclusive(t._1._2, getFirstObstacle(t)).contains(t._1._2)
+        }).size > 0
+        case "down" => records.filter(d => {
+          d._2 == "right" && d._1._1 == t._1 && Range.inclusive(t._1._2, getFirstObstacle(t)).contains(t._1._2)
+        }).size > 0
+        case "left" => records.filter(d => {
+          d._2 == "right" && d._1._1 == t._1 && Range.inclusive(t._1._2, getFirstObstacle(t)).contains(t._1._2)
+        }).size > 0
+        case _ => records.filter(d => {
+          d._2 == "right" && d._1._1 == t._1 && Range.inclusive(t._1._2, getFirstObstacle(t)).contains(t._1._2)
+        }).size > 0
+      }
+      def checkForInfiniteLoop(r: List[((Int, Int), String)]): List[(Int, Int)] = {
+        def loop(recs: List[((Int, Int), String)], acc: List[(Int, Int)]): List[(Int, Int)] = recs match {
+          case Nil => acc
+          case h :: t if causesInfiniteLoop(h) => loop(t, h._1 :: acc)
+          case _ :: t => loop(t, acc)
+        }
+        loop(r, List())
+      }
+      val infiniteLoops = checkForInfiniteLoop(records.reverse)
+      IO(s"final total is ...${count.size}").debug1 *> IO.unit
+    }
+  }
+
+  def resourceReadFile6b(path: String): IO[Unit] =
+    IO(s"opening file at $path") *>
+      getResourceFromFile(path).use {
+        scanner =>
+          readLineByLine6b(scanner, State(0, 0, (0,0), Map()))
+      }
+
+  override def run: IO[Unit] = {
+    val inputFile = new File("/Users/martinetherton/Developer/projects/be/scala/cats-course/src/main/resources/aoc2024/6.txt")
+    resourceReadFile6b(inputFile.getAbsolutePath)
   }
 }
