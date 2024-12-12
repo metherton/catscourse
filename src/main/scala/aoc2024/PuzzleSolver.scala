@@ -675,7 +675,6 @@ object PuzzleSolver6a extends IOApp.Simple {
   }
 }
 
-
 object PuzzleSolver6b extends IOApp.Simple {
 
   case class State(numRows: Int, numColumns: Int, startPosition: (Int, Int), obstacles: Map[Int, List[Int]])
@@ -711,98 +710,49 @@ object PuzzleSolver6b extends IOApp.Simple {
     else {
       println(s"Total: $state")
       // Now we need to calculate the route
-      def move(vector: ((Int, Int), String), points: List[((Int, Int), String)], direction: String, blockers: List[(Int, Int)]): List[((Int, Int), String)] = {
+      def move(position: ((Int, Int), String), points: List[((Int, Int), String)], direction: String): List[((Int, Int), String)] = {
 
-        def isNextABlocker(v: ((Int, Int), String)) = ???
-        if ((vector._1._1 >= state.numRows - 1 && direction == "down") || (vector._1._2 >= state.numColumns && direction == "right") || (vector._1._1 - 1 < 0 && direction == "up") || (vector._1._2 < 0 && direction == "left")) {
+        if ((position._1._1 >= state.numRows - 1 && direction == "down") || (position._1._2 >= state.numColumns && direction == "right") || (position._1._1 - 1 < 0 && direction == "up") || (position._1._2 < 0 && direction == "left")) {
           points
         } else {
           if (direction == "up") {
-            if (state.obstacles(vector._1._1 - 1).contains(vector._1._2)) {
-              val newPosition = ((vector._1._1, vector._1._2 + 1), "right")
-              move(newPosition, newPosition :: points, "right", blockers)
+            if (state.obstacles(position._1._1 - 1).contains(position._1._2)) {
+              val newPosition = ((position._1._1, position._1._2 + 1), "right")
+              move(newPosition, newPosition :: points, "right")
             } else {
-              val newPosition = ((vector._1._1 - 1, vector._1._2), "up")
-              move(newPosition, newPosition :: points, "up", blockers)
+              val newPosition = ((position._1._1 - 1, position._1._2),"up")
+              move(newPosition, newPosition :: points, "up")
             }
           } else if (direction == "right") {
-            if (state.obstacles(vector._1._1).contains(vector._1._2 + 1)) {
-              val newPosition = ((vector._1._1 + 1, vector._1._2), "down")
-              move(newPosition, newPosition :: points, "down", blockers)
+            if (state.obstacles(position._1._1).contains(position._1._2 + 1)) {
+              val newPosition = ((position._1._1 + 1, position._1._2),"down")
+              move(newPosition, newPosition :: points, "down")
             } else {
-              val newPosition = ((vector._1._1, vector._1._2 + 1), "right")
-              move(newPosition, newPosition :: points, "right", blockers)
+              val newPosition = ((position._1._1, position._1._2 + 1),"right")
+              move(newPosition, newPosition :: points, "right")
             }
           } else if (direction == "left") {
-            if (state.obstacles(vector._1._1).contains(vector._1._2 - 1)) {
-              val newPosition = ((vector._1._1 - 1, vector._1._2), "up")
-              move(newPosition, newPosition :: points, "up", blockers)
+            if (state.obstacles(position._1._1).contains(position._1._2 - 1)) {
+              val newPosition = ((position._1._1 - 1, position._1._2),"up")
+              move(newPosition, newPosition :: points, "up")
             } else {
-              val newPosition = ((vector._1._1, vector._1._2 - 1), "left")
-              move(newPosition, newPosition :: points, "left", blockers)
+              val newPosition = ((position._1._1, position._1._2 - 1),"left")
+              move(newPosition, newPosition :: points, "left")
             }
           } else {
-            if (state.obstacles(vector._1._1 + 1).contains(vector._1._2)) {
-              val newPosition = ((vector._1._1, vector._1._2 - 1), "left")
-              move(newPosition, newPosition :: points, "left", blockers)
+            if (state.obstacles(position._1._1 + 1).contains(position._1._2)) {
+              val newPosition = ((position._1._1, position._1._2 - 1),"left")
+              move(newPosition, newPosition :: points, "left")
             } else {
-              val newPosition = ((vector._1._1 + 1, vector._1._2), "down")
-              move(newPosition, newPosition :: points, "down", blockers)
+              val newPosition = ((position._1._1 + 1, position._1._2),"down")
+              move(newPosition, newPosition :: points, "down")
             }
           }
         }
       }
 
-      def getFirstObstacle(t: ((Int, Int), String)): Int = t._2 match {
-        case "up" => {
-          val obs = state.obstacles(t._1._1 + 1).filter(x => x > t._1._2).sorted.head
-          obs
-        }
-        case "down" => {
-          val obs = state.obstacles(t._1._1).filter(x => x < t._1._2).sorted.reverse.head
-          obs
-        }
-        case "left" => {
-          val obs = state.obstacles(t._1._1).filter(x => x < t._1._2).sorted.reverse.head
-          obs
-        }
-        case _ => {
-          val obs = state.obstacles(t._1._1).filter(x => x < t._1._2).sorted.reverse.head
-          obs
-        }
-      }
+      val count = move((state.startPosition,"up"), List[((Int, Int), String)](), "up").map(_._1).toSet
 
-
-
-
-
-      val records: List[((Int, Int), String)] = move((state.startPosition, "up"), List[((Int, Int), String)](), "up", List[(Int, Int)]())
-
-      val count = records.map(s => s._1).toSet
-
-      def causesInfiniteLoop(t: ((Int, Int), String)): Boolean = t._2 match {
-        case "up" => records.filter(d => {
-          d._2 == "right" && d._1._1 == t._1._1 + 1 && Range.inclusive(t._1._2, getFirstObstacle(t)).contains(t._1._2)
-        }).size > 0
-        case "down" => records.filter(d => {
-          d._2 == "right" && d._1._1 == t._1 && Range.inclusive(t._1._2, getFirstObstacle(t)).contains(t._1._2)
-        }).size > 0
-        case "left" => records.filter(d => {
-          d._2 == "right" && d._1._1 == t._1 && Range.inclusive(t._1._2, getFirstObstacle(t)).contains(t._1._2)
-        }).size > 0
-        case _ => records.filter(d => {
-          d._2 == "right" && d._1._1 == t._1 && Range.inclusive(t._1._2, getFirstObstacle(t)).contains(t._1._2)
-        }).size > 0
-      }
-      def checkForInfiniteLoop(r: List[((Int, Int), String)]): List[(Int, Int)] = {
-        def loop(recs: List[((Int, Int), String)], acc: List[(Int, Int)]): List[(Int, Int)] = recs match {
-          case Nil => acc
-          case h :: t if causesInfiniteLoop(h) => loop(t, h._1 :: acc)
-          case _ :: t => loop(t, acc)
-        }
-        loop(r, List())
-      }
-      val infiniteLoops = checkForInfiniteLoop(records.reverse)
       IO(s"final total is ...${count.size}").debug1 *> IO.unit
     }
   }
@@ -819,3 +769,7 @@ object PuzzleSolver6b extends IOApp.Simple {
     resourceReadFile6b(inputFile.getAbsolutePath)
   }
 }
+
+
+
+
