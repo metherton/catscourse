@@ -677,7 +677,7 @@ object PuzzleSolver6a extends IOApp.Simple {
 
 object PuzzleSolver6b extends IOApp.Simple {
 
-  case class State(numRows: Int, numColumns: Int, startPosition: (Int, Int), obstacles: Map[Int, List[Int]])
+  case class State(numRows: Int, numColumns: Int, startPosition: (Int, Int), obstacles: List[(Int, Int)])
   def readLineByLine6b(scanner: Scanner, state: State) : IO[Unit] = {
 
     def getStartPosition(chars: List[Char]): (Boolean, Int) = {
@@ -703,57 +703,96 @@ object PuzzleSolver6b extends IOApp.Simple {
         l <- IO(scanner.nextLine()).debug1
         _ <- IO.sleep(1.millis)
         startPos = getStartPosition(l.toList)
-        obs = state.numRows -> getObstacles(l.toList)
-        _ <- readLineByLine6b(scanner, state.copy(numRows = state.numRows + 1, numColumns = l.size, startPosition = if (startPos._1) (state.numRows, startPos._2) else state.startPosition, obstacles = state.obstacles + obs))
+        obs = getObstacles(l.toList).map(i => (state.numRows, i))
+        _ <- readLineByLine6b(scanner, state.copy(numRows = state.numRows + 1, numColumns = l.size, startPosition = if (startPos._1) (state.numRows, startPos._2) else state.startPosition, obstacles = obs ::: state.obstacles))
       } yield ()
     }
     else {
       println(s"Total: $state")
       // Now we need to calculate the route
-      def move(position: ((Int, Int), String), points: List[((Int, Int), String)], direction: String): List[((Int, Int), String)] = {
+      def move(position: ((Int, Int), String), points: List[((Int, Int), String)], direction: String, count: Int): Int = {
+
+        def checkExists(p: ((Int, Int), String)): Boolean = {
+          val possibleParallelPoints = p._2 match {
+            case "up" => {
+              val ps = for {
+                poss <- Range.inclusive(p._1._1, points.filter(x => x._2 == "up" && x._1._2 == p._1._2 && x._1._1 > p._1._1).map(_._1._1).sorted.reverse.head).toList
+                vec = (poss, p._1._2)
+              } yield vec
+              ps
+            }
+            case "right" => {
+              val ps = for {
+                poss <- Range.inclusive(p._1._2, if (points.filter(x => x._2 == "right" && x._1._1 == p._1._1 && x._1._2 > p._1._2).map(_._1._2).size > 0) points.filter(x => x._2 == "right" && x._1._1 == p._1._1 && x._1._2 > p._1._2).map(_._1._2).sorted.head else 0)
+                vec = (p._1._1, poss)
+              } yield vec
+              ps
+            }
+            case _ => List()
+          }
+          val inters = possibleParallelPoints.intersect(possibleParallelPoints)
+
+
+          points.filter(el => el._2 == p._2 && p._1._1 == el._1._1 && p._1._2 == el._1._2).size > 0 || inters.size == 0
+
+
+
+        }
 
         if ((position._1._1 >= state.numRows - 1 && direction == "down") || (position._1._2 >= state.numColumns && direction == "right") || (position._1._1 - 1 < 0 && direction == "up") || (position._1._2 < 0 && direction == "left")) {
-          points
+          count
         } else {
           if (direction == "up") {
-            if (state.obstacles(position._1._1 - 1).contains(position._1._2)) {
+            if (state.obstacles.contains((position._1._1 - 1, position._1._2))) {
               val newPosition = ((position._1._1, position._1._2 + 1), "right")
-              move(newPosition, newPosition :: points, "right")
+              move(newPosition, newPosition :: points, "right", count)
             } else {
               val newPosition = ((position._1._1 - 1, position._1._2),"up")
-              move(newPosition, newPosition :: points, "up")
+              // what if the new position was a barrier though..calculate what the new entry would be then check if it exists
+              val altPosition = ((position._1._1, position._1._2 + 1), "right")
+              val exists = checkExists(altPosition)
+              move(newPosition, newPosition :: points, "up", if (exists) count + 1 else count)
             }
           } else if (direction == "right") {
-            if (state.obstacles(position._1._1).contains(position._1._2 + 1)) {
+            if (state.obstacles.contains((position._1._1,position._1._2 + 1))) {
               val newPosition = ((position._1._1 + 1, position._1._2),"down")
-              move(newPosition, newPosition :: points, "down")
+              move(newPosition, newPosition :: points, "down", count)
             } else {
               val newPosition = ((position._1._1, position._1._2 + 1),"right")
-              move(newPosition, newPosition :: points, "right")
+              // what if the new position was a barrier though..calculate what the new entry would be then check if it exists
+              val altPosition = ((position._1._1 + 1, position._1._2), "down")
+              val exists = checkExists(altPosition)
+              move(newPosition, newPosition :: points, "right", if (exists) count + 1 else count)
             }
           } else if (direction == "left") {
-            if (state.obstacles(position._1._1).contains(position._1._2 - 1)) {
+            if (state.obstacles.contains((position._1._1,position._1._2 - 1))) {
               val newPosition = ((position._1._1 - 1, position._1._2),"up")
-              move(newPosition, newPosition :: points, "up")
+              move(newPosition, newPosition :: points, "up", count)
             } else {
               val newPosition = ((position._1._1, position._1._2 - 1),"left")
-              move(newPosition, newPosition :: points, "left")
+              // what if the new position was a barrier though..calculate what the new entry would be then check if it exists
+              val altPosition = ((position._1._1 - 1, position._1._2), "up")
+              val exists = checkExists(altPosition)
+              move(newPosition, newPosition :: points, "left", if (exists) count + 1 else count)
             }
           } else {
-            if (state.obstacles(position._1._1 + 1).contains(position._1._2)) {
+            if (state.obstacles.contains((position._1._1 + 1,position._1._2))) {
               val newPosition = ((position._1._1, position._1._2 - 1),"left")
-              move(newPosition, newPosition :: points, "left")
+              move(newPosition, newPosition :: points, "left", count)
             } else {
               val newPosition = ((position._1._1 + 1, position._1._2),"down")
-              move(newPosition, newPosition :: points, "down")
+              // what if the new position was a barrier though..calculate what the new entry would be then check if it exists
+              val altPosition = ((position._1._1, position._1._2 - 1), "left")
+              val exists = checkExists(altPosition)
+              move(newPosition, newPosition :: points, "down", if (exists) count + 1 else count)
             }
           }
         }
       }
 
-      val count = move((state.startPosition,"up"), List[((Int, Int), String)](), "up").map(_._1).toSet
+      val count = move((state.startPosition,"up"), List[((Int, Int), String)](), "up", 0)
 
-      IO(s"final total is ...${count.size}").debug1 *> IO.unit
+      IO(s"final total is ...${count}").debug1 *> IO.unit
     }
   }
 
@@ -761,7 +800,7 @@ object PuzzleSolver6b extends IOApp.Simple {
     IO(s"opening file at $path") *>
       getResourceFromFile(path).use {
         scanner =>
-          readLineByLine6b(scanner, State(0, 0, (0,0), Map()))
+          readLineByLine6b(scanner, State(0, 0, (0,0), List()))
       }
 
   override def run: IO[Unit] = {
