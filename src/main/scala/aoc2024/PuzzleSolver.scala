@@ -714,6 +714,14 @@ object PuzzleSolver6b extends IOApp.Simple {
 
         def checkExists(p: ((Int, Int), String)): Boolean = {
           val possibleParallelPoints = p._2 match {
+            case "down" => {
+              val ps = for {
+                poss <- Range.inclusive(p._1._1, if (points.filter(x => x._2 == "down" && x._1._2 == p._1._2 && x._1._1 > p._1._1).map(_._1._1).size > 0) points.filter(x => x._2 == "down" && x._1._2 == p._1._2 && x._1._1 > p._1._1).map(_._1._1).sorted.head - 1 else 0).toList
+                vec = (poss, p._1._2)
+              } yield vec
+              ps
+            }
+
             case "up" => {
               val ps = for {
                 poss <- Range.inclusive(if (points.filter(x => x._2 == "up" && x._1._2 == p._1._2 && x._1._1 < p._1._1).map(_._1._1).size > 0) points.filter(x => x._2 == "up" && x._1._2 == p._1._2 && x._1._1 < p._1._1).map(_._1._1).sorted.reverse.head + 1 else p._1._1 + 1, p._1._1).toList
@@ -723,7 +731,7 @@ object PuzzleSolver6b extends IOApp.Simple {
             }
             case "right" => {
               val ps = for {
-                poss <- Range.inclusive(p._1._2, if (points.filter(x => x._2 == "right" && x._1._1 == p._1._1 && x._1._2 > p._1._2).map(_._1._2).size > 0) points.filter(x => x._2 == "right" && x._1._1 == p._1._1 && x._1._2 > p._1._2).map(_._1._2).sorted.head else 0)
+                poss <- Range.inclusive(p._1._2, if (points.filter(x => x._2 == "right" && x._1._1 == p._1._1 && x._1._2 > p._1._2).map(_._1._2).size > 0) points.filter(x => x._2 == "right" && x._1._1 == p._1._1 && x._1._2 > p._1._2).map(_._1._2).sorted.head - 1 else 0)
                 vec = (p._1._1, poss)
               } yield vec
               ps
@@ -745,7 +753,7 @@ object PuzzleSolver6b extends IOApp.Simple {
             }
           }
           val inters = possibleParallelPoints.intersect(state.obstacles)
-
+          //val inters = List()
 
           points.filter(el => el._2 == p._2 && p._1._1 == el._1._1 && p._1._2 == el._1._2).size > 0 || (possibleParallelPoints.size > 0 && inters.size == 0)
 
