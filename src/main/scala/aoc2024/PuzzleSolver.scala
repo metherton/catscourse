@@ -730,7 +730,7 @@ object PuzzleSolver6b extends IOApp.Simple {
             }
             case "left" => {
               val ps = for {
-                poss <- Range.inclusive(if (points.filter(x => x._2 == "left" && x._1._1 == p._1._1 && x._1._2 < p._1._2).map(_._1._2).size > 0) points.filter(x => x._2 == "left" && x._1._1 == p._1._1 && x._1._2 < p._1._2).map(_._1._2).sorted.reverse.head else p._1._2 + 1, p._1._2)
+                poss <- Range.inclusive(if (points.filter(x => x._2 == "left" && x._1._1 == p._1._1 && x._1._2 < p._1._2).map(_._1._2).size > 0) points.filter(x => x._2 == "left" && x._1._1 == p._1._1 && x._1._2 < p._1._2).map(_._1._2).sorted.reverse.head + 1 else p._1._2 + 1, p._1._2)
                 vec = (p._1._1, poss)
               } yield vec
               ps
