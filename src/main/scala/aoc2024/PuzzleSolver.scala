@@ -696,9 +696,13 @@ object PuzzleSolver6b extends IOApp.Simple {
         case "EAST" => other.d == "EAST" && p.row == other.p.row
       }
     }
-    def canLoop(vectors: List[VectorPoint], obs: List[Point]): Boolean = {
-      vectors.filter(v => v == this).size > 0 ||
-        vectors.filter(v => inSameLine(v) && noObstacleInBetween(v, obs)).size > 0
+    def canLoop(vectors: List[VectorPoint], obs: List[Point], startPosition: VectorPoint): Boolean = {
+      if (p == startPosition.p) false
+      else {
+        vectors.filter(v => v == this).size > 0 ||
+          vectors.filter(v => inSameLine(v)).size > 0
+        //vectors.filter(v => inSameLine(v) && noObstacleInBetween(v, obs)).size > 0
+      }
     }
     def noObstacleInBetween(other: VectorPoint, ob: List[Point]): Boolean = d match {
       case "NORTH" => other.d == "NORTH" && other.p.col == p.col && Range.inclusive(p.row, other.p.row).map(i => Point(i, p.col)).intersect(ob).size == 0
@@ -760,7 +764,7 @@ object PuzzleSolver6b extends IOApp.Simple {
           else point
         }
         val nextPoint = loop(v.next)
-        val loopable = v.turn.canLoop(state.visitedPoints, state.obstacles)
+        val loopable = v.turn.canLoop(state.visitedPoints, state.obstacles, state.startPosition)
         (nextPoint, loopable)
       }
 
@@ -770,7 +774,7 @@ object PuzzleSolver6b extends IOApp.Simple {
         state.visitedPoints match {
           case h :: _ => {
             val next = getNext(h)
-            move(state.copy(visitedPoints = next._1 :: state.visitedPoints, loopers = if (next._2) h :: state.loopers else state.loopers), grid)
+            move(state.copy(visitedPoints = next._1 :: state.visitedPoints, loopers = if (next._2) next._1 :: state.loopers else state.loopers), grid)
           }
         }
       }
