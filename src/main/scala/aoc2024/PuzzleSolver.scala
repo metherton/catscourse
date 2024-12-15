@@ -696,11 +696,16 @@ object PuzzleSolver6b extends IOApp.Simple {
         case "EAST" => other.d == "EAST" && p.row == other.p.row
       }
     }
-    def canLoop(vectors: List[VectorPoint]): Boolean = {
-      val r = vectors.filter(v => inSameLine(v)).size > 0
-      r
+    def canLoop(vectors: List[VectorPoint], obs: List[Point]): Boolean = {
+      vectors.filter(v => v == this).size > 0 ||
+        vectors.filter(v => inSameLine(v) && noObstacleInBetween(v, obs)).size > 0
     }
-
+    def noObstacleInBetween(other: VectorPoint, ob: List[Point]): Boolean = d match {
+      case "NORTH" => other.d == "NORTH" && other.p.col == p.col && Range.inclusive(p.row, other.p.row).map(i => Point(i, p.col)).intersect(ob).size == 0
+      case "SOUTH" => other.d == "SOUTH" && other.p.col == p.col && Range.inclusive(other.p.row, p.row).map(i => Point(i, p.col)).intersect(ob).size == 0
+      case "EAST" => other.d == "EAST" && other.p.row == p.row && Range.inclusive(other.p.col, p.col).map(i => Point(p.row, i)).intersect(ob).size == 0
+      case "WEST" => other.d == "WEST" && other.p.row == p.row && Range.inclusive(p.col, other.p.col).map(i => Point(p.row, i)).intersect(ob).size == 0
+    }
     def turn = {
       d match {
         case "NORTH" => VectorPoint(Point(p.row, p.col + 1), "EAST")
@@ -755,7 +760,7 @@ object PuzzleSolver6b extends IOApp.Simple {
           else point
         }
         val nextPoint = loop(v.next)
-        val loopable = v.turn.canLoop(state.visitedPoints)
+        val loopable = v.turn.canLoop(state.visitedPoints, state.obstacles)
         (nextPoint, loopable)
       }
 
