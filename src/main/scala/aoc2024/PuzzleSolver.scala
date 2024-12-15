@@ -1,5 +1,6 @@
 package aoc2024
 
+import aoc2024.PuzzleSolver6a.readLineByLine6a
 import cats.effect.{IO, IOApp}
 import part3Concurrency.Resources.{getResourceFromFile, openFileScanner}
 import utilsScala2.general.DebugWrapper
@@ -547,6 +548,7 @@ object PuzzleSolver5b extends IOApp.Simple {
 object PuzzleSolver6a extends IOApp.Simple {
 
   case class State(numRows: Int, numColumns: Int, startPosition: (Int, Int), obstacles: Map[Int, List[Int]])
+
   def readLineByLine6a(scanner: Scanner, state: State) : IO[Unit] = {
 
     def getStartPosition(chars: List[Char]): (Boolean, Int) = {
@@ -677,25 +679,96 @@ object PuzzleSolver6a extends IOApp.Simple {
 
 object PuzzleSolver6b extends IOApp.Simple {
 
-  case class State(numRows: Int, numColumns: Int, startPosition: (Int, Int), obstacles: List[(Int, Int)])
-  def readLineByLine6b(scanner: Scanner, state: State) : IO[Unit] = {
+  type GuardDirection = String
+  case class Point(row: Int, col: Int)
 
-    def getStartPosition(chars: List[Char]): (Boolean, Int) = {
-      def loop(s: List[Char], found: Boolean, i: Int): (Boolean, Int) = s match {
-        case Nil => (found, i)
-        case h :: t if h == '^' => (true, i)
+  case class Grid(numberOfRows: Int, numberOfColumns: Int)
+  case class VectorPoint(p: Point, d: GuardDirection) {
+    def offGrid(grid: Grid): Boolean = {
+      p.row >= grid.numberOfRows || p.col >= grid.numberOfColumns || p.row < 0 || p.col < 0
+    }
+
+    def inSameLine(other: VectorPoint): Boolean = {
+      d match {
+        case "NORTH" => other.d == "NORTH" && p.col == other.p.col
+        case "SOUTH" => other.d == "SOUTH" && p.col == other.p.col
+        case "WEST" => other.d == "WEST" && p.row == other.p.row
+        case "EAST" => other.d == "EAST" && p.row == other.p.row
+      }
+    }
+    def canLoop(vectors: List[VectorPoint]): Boolean = {
+      val r = vectors.filter(v => inSameLine(v)).size > 0
+      r
+    }
+
+    def turn = {
+      d match {
+        case "NORTH" => VectorPoint(Point(p.row, p.col + 1), "EAST")
+        case "SOUTH" => VectorPoint(Point(p.row, p.col - 1), "WEST")
+        case "WEST" => VectorPoint(Point(p.row - 1, p.col), "NORTH")
+        case "EAST" => VectorPoint(Point(p.row + 1, p.col), "SOUTH")
+      }
+    }
+    def next = {
+      d match {
+        case "NORTH" => VectorPoint(Point(p.row - 1, p.col), "NORTH")
+        case "SOUTH" => VectorPoint(Point(p.row + 1, p.col), "SOUTH")
+        case "WEST" => VectorPoint(Point(p.row, p.col - 1), "WEST")
+        case "EAST" => VectorPoint(Point(p.row, p.col + 1), "EAST")
+      }
+    }
+
+    def previous = {
+      d match {
+        case "NORTH" => VectorPoint(Point(p.row + 1, p.col), "NORTH")
+        case "SOUTH" => VectorPoint(Point(p.row - 1, p.col), "SOUTH")
+        case "WEST" => VectorPoint(Point(p.row, p.col + 1), "WEST")
+        case "EAST" => VectorPoint(Point(p.row, p.col - 1), "EAST")
+      }
+    }
+  }
+  def readLineByLine6b(scanner: Scanner, numRows: Int, numColumns: Int, state: State) : IO[Unit] = {
+
+    def getStartPosition(chars: List[Char]): (Boolean, VectorPoint) = {
+      def loop(s: List[Char], found: Boolean, i: Int): (Boolean, VectorPoint) = s match {
+        case Nil => (false, VectorPoint(Point(0,0), "NORTH"))
+        case h :: t if h == '^' => (true, VectorPoint(Point(numRows,i), "NORTH"))
         case h :: t => loop(t, found, i + 1)
       }
       loop(chars, false, 0)
     }
 
-    def getObstacles(chars: List[Char]): List[Int] = {
-      def loop(s: List[Char], acc: List[Int], i: Int): List[Int] = s match {
+    def getObstacles(chars: List[Char]): List[Point] = {
+      def loop(s: List[Char], acc: List[Point], i: Int): List[Point] = s match {
         case Nil => acc
-        case h :: t if h == '#' => loop(t, i :: acc, i + 1)
+        case h :: t if h == '#' => loop(t, Point(numRows, i) :: acc, i + 1)
         case h :: t => loop(t, acc, i + 1)
       }
       loop(chars, List(), 0)
+    }
+
+    def move(state: State, grid: Grid): State = {
+
+      def getNext(v: VectorPoint): (VectorPoint, Boolean) = {
+        def loop(point: VectorPoint): VectorPoint = {
+          if (state.obstacles.contains(point.p)) loop(point.previous.turn)
+          else point
+        }
+        val nextPoint = loop(v.next)
+        val loopable = v.turn.canLoop(state.visitedPoints)
+        (nextPoint, loopable)
+      }
+
+      if (state.visitedPoints.head.offGrid(grid)) {
+        state.copy(visitedPoints = state.visitedPoints.tail)
+      } else {
+        state.visitedPoints match {
+          case h :: _ => {
+            val next = getNext(h)
+            move(state.copy(visitedPoints = next._1 :: state.visitedPoints, loopers = if (next._2) h :: state.loopers else state.loopers), grid)
+          }
+        }
+      }
     }
 
     if (scanner.hasNextLine) {
@@ -703,126 +776,23 @@ object PuzzleSolver6b extends IOApp.Simple {
         l <- IO(scanner.nextLine()).debug1
         _ <- IO.sleep(1.millis)
         startPos = getStartPosition(l.toList)
-        obs = getObstacles(l.toList).map(i => (state.numRows, i))
-        _ <- readLineByLine6b(scanner, state.copy(numRows = state.numRows + 1, numColumns = l.size, startPosition = if (startPos._1) (state.numRows, startPos._2) else state.startPosition, obstacles = obs ::: state.obstacles))
+        obs = getObstacles(l.toList)
+        _ <- readLineByLine6b(scanner, numRows + 1, l.size, state.copy(visitedPoints = if (startPos._1) startPos._2 :: state.visitedPoints else state.visitedPoints, startPosition = if (startPos._1) startPos._2 else state.startPosition, obstacles = if (obs.size > 0) obs ::: state.obstacles else state.obstacles))
       } yield ()
+    } else {
+      val grid = Grid(numRows, numColumns)
+      val answer = move(state, grid)
+      IO(s"final total is ...${answer.loopers.size}").debug1 *> IO.unit
     }
-    else {
-      println(s"Total: $state")
-      // Now we need to calculate the route
-      def move(position: ((Int, Int), String), points: List[((Int, Int), String)], direction: String, count: Int): Int = {
 
-        def checkExists(p: ((Int, Int), String)): Boolean = {
-          val possibleParallelPoints = p._2 match {
-            case "down" => {
-              val ps = for {
-                poss <- Range.inclusive(p._1._1, if (points.filter(x => x._2 == "down" && x._1._2 == p._1._2 && x._1._1 > p._1._1).map(_._1._1).size > 0) points.filter(x => x._2 == "down" && x._1._2 == p._1._2 && x._1._1 > p._1._1).map(_._1._1).sorted.head - 1 else 0).toList
-                vec = (poss, p._1._2)
-              } yield vec
-              ps
-            }
-
-            case "up" => {
-              val ps = for {
-                poss <- Range.inclusive(if (points.filter(x => x._2 == "up" && x._1._2 == p._1._2 && x._1._1 < p._1._1).map(_._1._1).size > 0) points.filter(x => x._2 == "up" && x._1._2 == p._1._2 && x._1._1 < p._1._1).map(_._1._1).sorted.reverse.head + 1 else p._1._1 + 1, p._1._1).toList
-                vec = (poss, p._1._2)
-              } yield vec
-              ps
-            }
-            case "right" => {
-              val ps = for {
-                poss <- Range.inclusive(p._1._2, if (points.filter(x => x._2 == "right" && x._1._1 == p._1._1 && x._1._2 > p._1._2).map(_._1._2).size > 0) points.filter(x => x._2 == "right" && x._1._1 == p._1._1 && x._1._2 > p._1._2).map(_._1._2).sorted.head - 1 else 0)
-                vec = (p._1._1, poss)
-              } yield vec
-              ps
-            }
-            case "left" => {
-              val ps = for {
-                poss <- Range.inclusive(if (points.filter(x => x._2 == "left" && x._1._1 == p._1._1 && x._1._2 < p._1._2).map(_._1._2).size > 0) points.filter(x => x._2 == "left" && x._1._1 == p._1._1 && x._1._2 < p._1._2).map(_._1._2).sorted.reverse.head + 1 else p._1._2 + 1, p._1._2)
-                vec = (p._1._1, poss)
-              } yield vec
-              ps
-            }
-
-            case _ => {
-              val ps = for {
-                poss <- Range.inclusive(p._1._1, if (points.filter(x => x._2 == "down" && x._1._2 == p._1._2 && x._1._1 > p._1._1).map(_._1._1).size > 0) points.filter(x => x._2 == "down" && x._1._2 == p._1._2 && x._1._1 > p._1._1).map(_._1._1).sorted.head else 0).toList
-                vec = (poss, p._1._2)
-              } yield vec
-              ps
-            }
-          }
-          val inters = possibleParallelPoints.intersect(state.obstacles)
-          //val inters = List()
-
-          points.filter(el => el._2 == p._2 && p._1._1 == el._1._1 && p._1._2 == el._1._2).size > 0 || (possibleParallelPoints.size > 0 && inters.size == 0)
-
-
-
-        }
-
-        if ((position._1._1 >= state.numRows - 1 && direction == "down") || (position._1._2 >= state.numColumns && direction == "right") || (position._1._1 - 1 < 0 && direction == "up") || (position._1._2 < 0 && direction == "left")) {
-          count
-        } else {
-          if (direction == "up") {
-            if (state.obstacles.contains((position._1._1 - 1, position._1._2))) {
-              val newPosition = ((position._1._1, position._1._2 + 1), "right")
-              move(newPosition, newPosition :: points, "right", count)
-            } else {
-              val newPosition = ((position._1._1 - 1, position._1._2),"up")
-              // what if the new position was a barrier though..calculate what the new entry would be then check if it exists
-              val altPosition = ((position._1._1, position._1._2 + 1), "right")
-              val exists = checkExists(altPosition)
-              move(newPosition, newPosition :: points, "up", if (exists) count + 1 else count)
-            }
-          } else if (direction == "right") {
-            if (state.obstacles.contains((position._1._1,position._1._2 + 1))) {
-              val newPosition = ((position._1._1 + 1, position._1._2),"down")
-              move(newPosition, newPosition :: points, "down", count)
-            } else {
-              val newPosition = ((position._1._1, position._1._2 + 1),"right")
-              // what if the new position was a barrier though..calculate what the new entry would be then check if it exists
-              val altPosition = ((position._1._1 + 1, position._1._2), "down")
-              val exists = checkExists(altPosition)
-              move(newPosition, newPosition :: points, "right", if (exists) count + 1 else count)
-            }
-          } else if (direction == "left") {
-            if (state.obstacles.contains((position._1._1,position._1._2 - 1))) {
-              val newPosition = ((position._1._1 - 1, position._1._2),"up")
-              move(newPosition, newPosition :: points, "up", count)
-            } else {
-              val newPosition = ((position._1._1, position._1._2 - 1),"left")
-              // what if the new position was a barrier though..calculate what the new entry would be then check if it exists
-              val altPosition = ((position._1._1 - 1, position._1._2), "up")
-              val exists = checkExists(altPosition)
-              move(newPosition, newPosition :: points, "left", if (exists) count + 1 else count)
-            }
-          } else {
-            if (state.obstacles.contains((position._1._1 + 1,position._1._2))) {
-              val newPosition = ((position._1._1, position._1._2 - 1),"left")
-              move(newPosition, newPosition :: points, "left", count)
-            } else {
-              val newPosition = ((position._1._1 + 1, position._1._2),"down")
-              // what if the new position was a barrier though..calculate what the new entry would be then check if it exists
-              val altPosition = ((position._1._1, position._1._2 - 1), "left")
-              val exists = checkExists(altPosition)
-              move(newPosition, newPosition :: points, "down", if (exists) count + 1 else count)
-            }
-          }
-        }
-      }
-
-      val count = move((state.startPosition,"up"), List[((Int, Int), String)](), "up", 0)
-
-      IO(s"final total is ...${count}").debug1 *> IO.unit
-    }
   }
+  case class State(visitedPoints: List[VectorPoint], startPosition: VectorPoint, obstacles: List[Point], loopers: List[VectorPoint])
 
   def resourceReadFile6b(path: String): IO[Unit] =
     IO(s"opening file at $path") *>
       getResourceFromFile(path).use {
         scanner =>
-          readLineByLine6b(scanner, State(0, 0, (0,0), List()))
+          readLineByLine6b(scanner, 0, 0, State(List(), VectorPoint(Point(0,0), "NORTH"), List(), List()))
       }
 
   override def run: IO[Unit] = {
