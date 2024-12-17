@@ -20,7 +20,7 @@ object Day7 extends IOApp.Simple {
         case h :: t => {
           for {
             v <- loop(t, i + 1)
-            ch <- List("*", "+")
+            ch <- List("*", "+", "|")
             s = (h,(if (i < values.size - 1) ch else ""))
           } yield s :: v
         }
@@ -33,6 +33,7 @@ object Day7 extends IOApp.Simple {
       val result: List[CalcPair] =  loop(values, 0).map(l => l.foldLeft((0L, "+"))((b, a) => b match {
         case (x, "+") => (x + a._1, a._2)
         case (x, "*") => (x * a._1, a._2)
+        case (x, "|") => ((x.toString + a._1.toString).toLong, a._2)
         case (x, _) => (x, "#")
       }))
       println(s" final: ${result.toSet}")
