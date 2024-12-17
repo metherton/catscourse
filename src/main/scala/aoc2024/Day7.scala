@@ -26,9 +26,6 @@ object Day7 extends IOApp.Simple {
         }
       }
 
-
-
-
       //= loop(values, 0)
       val result: List[CalcPair] =  loop(values, 0).map(l => l.foldLeft((0L, "+"))((b, a) => b match {
         case (x, "+") => (x + a._1, a._2)
