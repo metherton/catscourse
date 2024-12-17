@@ -791,6 +791,15 @@ object PuzzleSolver6b extends IOApp.Simple {
     } else {
       val grid = Grid(numRows, numColumns)
       val answer = move(state, grid)
+
+
+      // check each point whether it
+//      for {
+//        v <- answer.visitedPoints
+//        newV = v.turn
+//      }
+
+
       IO(s"final total is ...${answer.loopers.size}").debug1 *> IO.unit
     }
 
