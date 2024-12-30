@@ -20,12 +20,15 @@ object Day8  extends IOApp.Simple {
     }
   }
 
+
+
   def loop(ls: List[Antenna]): List[(Antenna,Antenna)] = ls match {
     case Nil => List()
     case h :: Nil => List()
     case h :: t => t.map(a => (h, a)) ::: loop(t)
   }
 
+  case class Antenna(id: Char, pos: Coords)
   case class State(antennas: List[Antenna], grid: Option[Grid]) {
     def antinodes: List[Antinode] = {
       def loop(ls: List[Antenna]): List[(Antenna,Antenna)] = ls match {
@@ -44,10 +47,41 @@ object Day8  extends IOApp.Simple {
         )
       }
 
+      def antisb(an: (Antenna, Antenna)): List[Antinode] = {
+        //ANTI1(X1 - (X2 - X1), Y1 - (Y2-Y1))
+        //ANTI(X2 + (X2 - X1), Y2 + (Y2 - Y1))
+        def left(lan: (Antenna, Antenna), acc: List[Antinode]): List[Antinode] = {
+          if (!Antinode(Coords(lan._1.pos.row - (lan._2.pos.row - lan._1.pos.row), lan._1.pos.col - (lan._2.pos.col - lan._1.pos.col))).offGrid(grid.get)) {
+            left((Antenna(lan._1.id, Coords(lan._1.pos.row - (lan._2.pos.row - lan._1.pos.row), lan._1.pos.col - (lan._2.pos.col - lan._1.pos.col))), lan._1) ,Antinode(Coords(lan._1.pos.row - (lan._2.pos.row - lan._1.pos.row), lan._1.pos.col - (lan._2.pos.col - lan._1.pos.col))) :: acc)
+          } else acc
+
+        }
+        def right(ran: (Antenna, Antenna), acc: List[Antinode]): List[Antinode] = {
+//          Antinode(Coords(an._2.pos.row + (an._2.pos.row - an._1.pos.row), an._2.pos.col + (an._2.pos.col - an._1.pos.col)))
+          if (!Antinode(Coords(ran._2.pos.row + (ran._2.pos.row - ran._1.pos.row), ran._2.pos.col + (ran._2.pos.col - ran._1.pos.col))).offGrid(grid.get)) {
+            right((ran._2, Antenna(ran._1.id, Coords(ran._2.pos.row + (ran._2.pos.row - ran._1.pos.row), ran._2.pos.col + (ran._2.pos.col - ran._1.pos.col)))) ,Antinode(Coords(ran._2.pos.row + (ran._2.pos.row - ran._1.pos.row), ran._2.pos.col + (ran._2.pos.col - ran._1.pos.col))) :: acc)
+          } else acc
+
+
+        }
+        left(an, List()) ::: right(an, List())
+//        (
+//          Antinode(Coords(an._1.pos.row - (an._2.pos.row - an._1.pos.row), an._1.pos.col - (an._2.pos.col - an._1.pos.col))),
+//          Antinode(Coords(an._2.pos.row + (an._2.pos.row - an._1.pos.row), an._2.pos.col + (an._2.pos.col - an._1.pos.col)))
+//        )
+      }
+
       def loopAgain(ants: List[(Antenna, Antenna)]): List[(Antinode, Antinode)] = ants match {
         case Nil => List()
         case h :: t => antis(h) :: loopAgain(t)
       }
+
+      def loopAgainb(ants: List[(Antenna, Antenna)]): List[Antinode] = ants match {
+        case Nil => List()
+        //case h :: t => antis(h) :: loopAgain(t)
+        case h :: t => antisb(h) ::: loopAgainb(t)
+      }
+
 
       /*
      (0,6)
@@ -66,6 +100,7 @@ object Day8  extends IOApp.Simple {
        */
 
       val antins  = pairs.map(el => loopAgain(el._2))
+      val antinsb  = pairs.map(el => loopAgainb(el._2))
       val bla = antins.flatten.toList
         //val bla1: List[(Antinode, Antinode)] = bla.filter(el => !el._1.offGrid(grid.get) && !el._2.offGrid(grid.get)).toList
 
@@ -74,14 +109,16 @@ object Day8  extends IOApp.Simple {
         case (t1,t2) :: ta => fl(ta, List(t1, t2) ::: acc)
       }
 
+
       val flatnd = fl(bla, List())
       val filterfla = flatnd.filter(el => !el.offGrid(grid.get))
+      val filterflab = antennas.map(anten => Antinode(anten.pos)) ::: antinsb.flatten.toList.filter(el => !el.offGrid(grid.get))
       filterfla.toSet.toList
+      filterflab.toSet.toList
     }
   }
   case class Coords(row: Int, col: Int)
 
-  case class Antenna(id: Char, pos: Coords)
 
   def scanLine(char: List[Char], rowNo: Int): List[Antenna] = {
     def loop(s: List[Char], ants: List[Antenna], i: Int): List[Antenna] = s match {
