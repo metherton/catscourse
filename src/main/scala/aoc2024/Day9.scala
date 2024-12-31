@@ -27,7 +27,7 @@ object Day9  extends IOApp.Simple {
         case h :: t if h != '.' => {
           // we have a file part..we want to find first space in our file map and replace it
           val firstSpacePosition = findFirstSpace(originalFileMap)
-          if (firstSpacePosition < originalFileMap.size) {
+          if (firstSpacePosition < originalFileMap.size - 1) {
             val evenNewerFileMap = originalFileMap.updated(firstSpacePosition, h)
             loop(t, evenNewerFileMap, count + 1)
           } else {
@@ -50,10 +50,13 @@ object Day9  extends IOApp.Simple {
     loop(diskMap, 0, List(), false)
   }
 
-  def checksum(m: List[Char]): Int = {
-    def loop(chars: List[Char], acc: Int, i: Int): Int = chars match {
+  def checksum(m: List[Char]): Long = {
+    def loop(chars: List[Char], acc: Long, i: Int): Long = chars match {
       case Nil => acc
-      case h :: t => loop(t, if (h != '.') acc + (h.asDigit * i) else acc, i + 1)
+      case h :: t => {
+        println(s"$i: $acc")
+        loop(t, if (h != '.') acc + (h.toLong * i) else acc, i + 1)
+      }
     }
     loop(m, 0, 0)
   }
