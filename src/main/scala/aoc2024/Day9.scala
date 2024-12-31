@@ -13,25 +13,31 @@ object Day9  extends IOApp.Simple {
   case class State(fileMap: List[Char]) {
     def compress(): List[Char] = {
 
-      def splitRemainder(chars: List[Char]): (List[Char], List[Char]) = {
-        def loop2(remain: List[Char], acc: List[Char]): (List[Char], List[Char]) = remain match {
-          case Nil => (acc, remain)
-          case h :: t if h == '.' => (acc, remain)
-          case h :: t => loop2(t, h :: acc)
+      def findFirstSpace(fmp: List[Char]): Int = {
+        def loop2(fileMap: List[Char], i: Int): Int = fileMap match {
+          case Nil => i // if
+          case h :: t if h == '.' => i
+          case h :: t => loop2(t, i + 1)
         }
-        loop2(chars, List())
+        loop2(fmp, 0)
       }
 
-      def loop(original: List[Char], processed: List[Char], remainder: List[Char]): List[Char] = original match {
-        case Nil => processed
+      def loop(originalReversed: List[Char], originalFileMap: List[Char], count: Int): List[Char] = originalReversed match {
+        case Nil => originalFileMap
         case h :: t if h != '.' => {
           // we have a file part..we want to find first space in our file map and replace it
-          val remainderParts = splitRemainder(remainder)
-          loop(t, h :: remainderParts._1 ::: processed, remainderParts._2.tail)
+          val firstSpacePosition = findFirstSpace(originalFileMap)
+          if (firstSpacePosition < originalFileMap.size) {
+            val evenNewerFileMap = originalFileMap.updated(firstSpacePosition, h)
+            loop(t, evenNewerFileMap, count + 1)
+          } else {
+            originalFileMap.take(originalFileMap.size - count) ::: Range(0, count).map(_ => '.').toList
+          }
+
         }
-        case _ :: t => loop(t, processed, remainder)
+        case _ :: t => loop(t, originalFileMap, count)
       }
-      loop(this.fileMap, List(), this.fileMap.reverse)
+      loop(this.fileMap, this.fileMap.reverse, 0)
     }
   }
 
@@ -43,6 +49,14 @@ object Day9  extends IOApp.Simple {
     }
     loop(diskMap, 0, List(), false)
   }
+
+  def checksum(m: List[Char]): Int = {
+    def loop(chars: List[Char], acc: Int, i: Int): Int = chars match {
+      case Nil => acc
+      case h :: t => loop(t, if (h != '.') acc + (h.asDigit * i) else acc, i + 1)
+    }
+    loop(m, 0, 0)
+  }
   def readLineByLine(scanner: Scanner, state: State): IO[Unit] = {
     if (scanner.hasNextLine) {
       for {
@@ -53,7 +67,8 @@ object Day9  extends IOApp.Simple {
       } yield ()
     }
     else {
-      IO(s"final states is ...${state.compress}").debug1 *> IO.unit
+      val result = checksum(state.compress)
+      IO(s"final states is ...$result").debug1 *> IO.unit
     }
   }
   def resourceReadFile(path: String): IO[Unit] =
