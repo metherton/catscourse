@@ -27,7 +27,7 @@ object Day9  extends IOApp.Simple {
         case h :: t if h != '.' => {
           // we have a file part..we want to find first space in our file map and replace it
           val firstSpacePosition = findFirstSpace(originalFileMap)
-          if (firstSpacePosition < originalFileMap.size - 1) {
+          if (firstSpacePosition < originalFileMap.size) {
             val evenNewerFileMap = originalFileMap.updated(firstSpacePosition, h)
             loop(t, evenNewerFileMap, count + 1)
           } else {
