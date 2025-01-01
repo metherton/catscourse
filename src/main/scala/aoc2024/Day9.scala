@@ -6,6 +6,7 @@ import utilsScala2.general.DebugWrapper
 
 import java.io.File
 import java.util.Scanner
+import scala.collection.immutable.TreeMap
 import scala.concurrent.duration._
 
 object Day9  extends IOApp.Simple {
@@ -39,6 +40,62 @@ object Day9  extends IOApp.Simple {
       }
       loop(this.fileMap, this.fileMap.reverse, 0)
     }
+
+    def compressWholeFile(): List[(Char, Boolean)] = {
+
+      def findFirstSpace(fmp: List[(Char,Boolean)]): Int = {
+        def loop2(fileMap: List[(Char,Boolean)], i: Int): Int = fileMap match {
+          case Nil => i // if
+          case h :: t if h._2 => i
+          case h :: t => loop2(t, i + 1)
+        }
+        loop2(fmp, 0)
+      }
+
+      def loop(originalReversed: List[(Char, Boolean)], originalFileMap: List[(Char, Boolean)], count: Int): List[(Char, Boolean)] = originalReversed match {
+        case Nil => originalFileMap
+        case h :: t if !h._2 => {
+          // we have a file part..we want to find first space in our file map and replace it
+          val firstSpacePosition = findFirstSpace(originalFileMap)
+          if (firstSpacePosition < originalFileMap.size) {
+            val evenNewerFileMap = originalFileMap.updated(firstSpacePosition, h)
+            loop(t, evenNewerFileMap, count + 1)
+          } else {
+            originalFileMap.take(originalFileMap.size - count) ::: Range(0, count).map(_ => ('.',true)).toList
+          }
+
+        }
+        case _ :: t => loop(t, originalFileMap, count)
+      }
+
+      def canMove(el: List[(Char, Boolean)], fm: List[(Char, Boolean)]): (Boolean, Int) = {
+        def loop(nfm: List[(Char, Boolean)], contiguousBlockSizeNeeded: Int, currentCount: Int, i: Int): (Boolean, Int) = nfm match {
+          case Nil => (false, 0)
+          case h :: t if currentCount >= contiguousBlockSizeNeeded => (true, i)
+          case h :: t if h._2 => loop(t, contiguousBlockSizeNeeded, currentCount + 1, i)
+          case _ :: t => loop(t, contiguousBlockSizeNeeded, 0, i + currentCount + 1)
+        }
+        loop(fm, el.size, 0, 0)
+      }
+
+      def loopb(originalReversed: List[(Char, Boolean)], originalFileMap: List[(Char, Boolean)], count: Int, fileBlocks: Seq[((Int, Boolean), List[(Char, Boolean)])]): List[(Char, Boolean)] = fileBlocks match {
+        case Nil => originalFileMap
+        case h :: t if canMove(h._2, originalFileMap)._1 => {
+          val pos = canMove(h._2, originalFileMap)._2
+          val evenNewerMap = originalFileMap.patch(pos, h._2, h._2.size)
+          loopb(originalReversed, evenNewerMap, count + 1, t)
+        }
+        case _ :: t => loopb(originalReversed, originalFileMap, count, t)
+      }
+
+
+      val m: Seq[((Int, Boolean), List[(Char, Boolean)])] = this.fileMap.groupBy(t => (t._1.toInt, t._2)).filter(!_._1._2).toSeq.sortBy(_._1._1).reverse
+      println(m)
+
+      println(this.fileMap.groupBy(t => (t._1.toInt, t._2)))
+      loopb(this.fileMap, this.fileMap.reverse, 0, m)
+    }
+
   }
 
   def createFileMap(diskMap: List[Char]): List[(Char, Boolean)] = {
@@ -77,7 +134,7 @@ object Day9  extends IOApp.Simple {
       } yield ()
     }
     else {
-      val result = checksum(state.compress)
+      val result = checksum(state.compressWholeFile())
       IO(s"final states is ...$result").debug1 *> IO.unit
     }
   }
