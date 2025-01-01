@@ -46,6 +46,8 @@ object Day9  extends IOApp.Simple {
       case Nil => acc
       case h :: t if isSpace => loop(t, fileNo, Range(0, h.asDigit).map(_ => '.').toList ::: acc, !isSpace)
       case h :: t => loop(t, fileNo + 1, Range(0, h.asDigit).map(_ => fileNo.toChar).toList ::: acc, !isSpace)
+    //  case h :: t => loop(t, fileNo + 1, if (h.asDigit == 0) println("emptyfilefounnd") else Range(0, h.asDigit).map(_ => fileNo.toChar).toList ::: acc, !isSpace)
+
     }
     loop(diskMap, 0, List(), false)
   }
@@ -65,7 +67,12 @@ object Day9  extends IOApp.Simple {
       for {
         l <- IO(scanner.nextLine()).debug1
         _ <- IO.sleep(1.millis)
+        _ <- IO(l.toList.zipWithIndex.filter(t => t._2 % 2 == 1).map(_._1.asDigit).sum).debug1
         fileMap = createFileMap(l.toList)
+        //fileMap = l.toList.zipWithIndex.flatMap(t => if (t._2 % 2 == 1) Range(0, t._1.asDigit).map(_ => '.') else Range(0, t._1.asDigit).map(_ => (t._2 / 2).toChar)).reverse
+        _ <- IO(fileMap.filter(_ == '.').size).debug1
+ //       _ <- IO(fileMap).debug1
+
         _ <- readLineByLine(scanner, state.copy(fileMap = fileMap))
       } yield ()
     }
