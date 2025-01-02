@@ -82,8 +82,11 @@ object Day9  extends IOApp.Simple {
         case Nil => originalFileMap
         case h :: t if canMove(h._2, originalFileMap)._1 => {
           val pos = canMove(h._2, originalFileMap)._2
+          val spaceReqPos = originalFileMap.indexOf(h._2.head)
           val evenNewerMap = originalFileMap.patch(pos, h._2, h._2.size)
-          loopb(originalReversed, evenNewerMap, count + 1, t)
+          val evenEvenNewerMap = evenNewerMap.patch(spaceReqPos, h._2.map(_ => ('.', true)), h._2.size)
+          // TODO: need to also make those old positions into spaces
+          loopb(originalReversed, evenEvenNewerMap, count + 1, t)
         }
         case _ :: t => loopb(originalReversed, originalFileMap, count, t)
       }
