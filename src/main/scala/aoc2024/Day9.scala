@@ -73,7 +73,8 @@ object Day9  extends IOApp.Simple {
           case Nil => (false, 0)
           case h :: t if currentCount >= contiguousBlockSizeNeeded => (true, i)
           case h :: t if h._2 => loop(t, contiguousBlockSizeNeeded, currentCount + 1, i)
-          case _ :: t => loop(t, contiguousBlockSizeNeeded, 0, i + currentCount + 1)
+          case h :: t if el.head._1 == h._1 => (false, 0)
+          case h :: t => loop(t, contiguousBlockSizeNeeded, 0, i + currentCount + 1)
         }
         loop(fm, el.size, 0, 0)
       }
