@@ -51,7 +51,9 @@ object Day10  extends IOApp.Simple {
     }
     else {
       val result = "bla"
-      IO(s"final states is ...${state.paths.groupBy(lf => (lf(0), lf(9))).size}").debug1 *> IO.unit
+      IO(s"final states is ...${state.paths.size}").debug1 *> IO.unit
+
+      //IO(s"final states grouped is ...${state.paths.groupBy(lf => (lf(0), lf(9))).size}").debug1 *> IO.unit
     }
   }
   def resourceReadFile(path: String): IO[Unit] =
