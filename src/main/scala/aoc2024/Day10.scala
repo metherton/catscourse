@@ -13,30 +13,28 @@ object Day10  extends IOApp.Simple {
   case class Coords(row: Int, col: Int)
   case class Point(id: Int, coords: Coords)
   case class Grid(points: List[Point]) {
-    def left(p: Point): Point = {
-      p
+    def sequentialNeighbours(p: Point): List[Point] = {
+      points.filter(fp => fp.id == p.id + 1 && ((fp.coords.row == p.coords.row && (fp.coords.col - p.coords.col).abs == 1) || (fp.coords.col == p.coords.col && (fp.coords.row - p.coords.row).abs == 1)))
     }
     def trailheads = points.filter(_.id == 0)
   }
   case class State(grid: Grid) {
     def paths() = {
 
-      def getNeighbours(p: Point): List[Point] = {
-        val neighbours = grid.left(p) :: Nil
-        neighbours
-      }
-
-      def getPaths(points: List[Point], acc: List[List[Point]]): List[List[Point]] = {
-        for {
-          p <- points
-          neighbours <- List(getNeighbours(p))
-        } yield neighbours
+      def sequence(p: List[List[Point]]): List[List[Point]] = {
+        val newbies = p.map(lp => {
+          val newNeighbours = grid.sequentialNeighbours(lp.head).map(nh => nh :: lp)
+          newNeighbours
+        })
+        val newbiesFlattened = newbies.flatten
+        val num = newbiesFlattened.flatMap( x => x).size
+        if (num > 0)sequence(newbiesFlattened) else p
       }
 
       def loop(thList: List[Point]):List[List[Point]] = thList match {
         case Nil => Nil
         case h :: t => {
-          getPaths(List(h), List()) ::: loop(t)
+          sequence(List(List(h))) ::: loop(t)
         }
       }
       loop(grid.trailheads)
@@ -53,7 +51,7 @@ object Day10  extends IOApp.Simple {
     }
     else {
       val result = "bla"
-      IO(s"final states is ...${state.paths}").debug1 *> IO.unit
+      IO(s"final states is ...${state.paths.groupBy(lf => (lf(0), lf(9))).size}").debug1 *> IO.unit
     }
   }
   def resourceReadFile(path: String): IO[Unit] =
