@@ -21,7 +21,7 @@ object Day11  extends IOApp.Simple {
       }
       def loop(i: Int, acc: List[Long]): List[Long] = {
         println(i)
-        if (i >= 25) acc
+        if (i >= 75) acc
         else {
           val newValues = for {
             num <- acc
