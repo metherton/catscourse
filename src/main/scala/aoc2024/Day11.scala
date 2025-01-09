@@ -13,39 +13,41 @@ object Day11  extends IOApp.Simple {
 
   case class State(nums: List[Long]) {
 
-    def transform(): Map[Long, Long] = {
-      def change(orgNums: List[Long], newNums: List[Long], myMap: Map[Long, Long]): (List[Long],Map[Long, Long]) = orgNums match {
+    def transform(): List[Long] = {
+      def change(orgNums: List[Long], newNums: List[Long], myMap: Map[Long, List[Long]]): (List[Long],Map[Long, List[Long]]) = orgNums match {
         case Nil => (newNums,myMap)
         case i :: t =>
-        if (i == 0) {
-          change(t, 1 :: newNums, if(myMap.contains(i)) myMap.updated(i, myMap(i) + 1)  else myMap + (i -> 1))
+          if (myMap.contains(i)) {
+            change(t, if (myMap(i).size > 1) myMap(i)(0) :: myMap(i)(1) :: newNums else myMap(i)(0) :: newNums, myMap)
+          }
+          else if (i == 0) {
+            val newMyMap: Map[Long, List[Long]] = myMap + (0L -> List(1L))
+            change(t, 1 :: newNums, newMyMap)
+          }
+          else if (i.toString.size % 2 == 0) {
+            val parts = i.toString.splitAt(i.toString.size / 2)
+           //List(parts._1.toLong, parts._2.toLong)
+//            val nm: Map[Long, Long] = myMap + (parts._1.toLong -> 1)
+  //          val nmm: Map[Long, Long] = if (nm.contains(parts._2.toLong)) nm.updated(parts._2.toLong, nm(parts._2.toLong) + 1L) else nm + (parts._2.toLong -> 1)
+            val newMyMap: Map[Long, List[Long]] = myMap + (i -> List(parts._1.toLong, parts._2.toLong))
+            change(t, parts._1.toLong :: parts._2.toLong :: newNums, newMyMap)
+          } else {
+            val newMyMap: Map[Long, List[Long]] = myMap + (i -> List(i * 2024))
+            change(t, i * 2024 :: newNums, newMyMap)
+          }
         }
-        else if (i.toString.size % 2 == 0) {
-          val parts = i.toString.splitAt(i.toString.size / 2)
-          //List(parts._1.toLong, parts._2.toLong)
-          val nm: Map[Long, Long] = if (myMap.contains(parts._1.toLong)) myMap.updated(parts._1.toLong, myMap(parts._1.toLong) + 1) else myMap + (parts._1.toLong -> 1)
-          val nmm: Map[Long, Long] = if (nm.contains(parts._2.toLong)) nm.updated(parts._2.toLong, nm(parts._2.toLong) + 1L) else nm + (parts._2.toLong -> 1)
-          change(t, parts._1.toLong :: parts._2.toLong :: newNums, nmm)
-        } else {
-          change(t, i * 2024 :: newNums, if (myMap.contains(i * 2024)) myMap.updated(i * 2024, myMap(i * 2024) + 1) else myMap + ((i * 2024) -> 1))
-        }
-      }
       @tailrec
-      def loop(i: Int, acc: List[Long], tb: Map[Long, Long]): Map[Long, Long] = {
+      def loop(i: Int, acc: List[Long], tb: Map[Long, List[Long]]): List[Long] = {
         println(s"loop $i")
-        if (i >= 25) tb
+        if (i >= 25) acc
         else {
           val newTb = change(acc, List(), tb)
           //val newTb = change(acc, List(), Map())
-          if (i >= 24) {
-            loop(i + 1, newTb._1, newTb._2)
-          } else {
-            loop(i + 1, newTb._1, Map())
-          }
+          loop(i + 1, newTb._1, newTb._2)
           //loop(i + 1, newTb._1, Map())
         }
       }
-      loop(0, nums, Map[Long, Long]())
+      loop(0, nums, Map[Long, List[Long]]())
     }
   }
 
@@ -60,7 +62,7 @@ object Day11  extends IOApp.Simple {
     }
     else {
       val result = state.transform
-      IO(s"final states is ${result.map(_._2).sum}").debug1 *> IO.unit
+      IO(s"final states is ${result.size}").debug1 *> IO.unit
 
       //IO(s"final states grouped is ...${state.paths.groupBy(lf => (lf(0), lf(9))).size}").debug1 *> IO.unit
     }
