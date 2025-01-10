@@ -39,7 +39,7 @@ object Day11  extends IOApp.Simple {
       @tailrec
       def loop(i: Int, acc: List[Long], tb: Map[Long, List[Long]]): List[Long] = {
         println(s"loop $i")
-        if (i >= 25) acc
+        if (i >= 45) acc
         else {
           val newTb = change(acc, List(), tb)
           //val newTb = change(acc, List(), Map())
