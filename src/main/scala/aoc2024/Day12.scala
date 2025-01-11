@@ -14,14 +14,18 @@ object Day12  extends IOApp.Simple {
   case class Plot(id: Char, coords: Coords)
   case class Region(plots: List[Plot])
   case class Grid(plots: List[Plot])
+  case class St(ls: List[String])
+  def addLines(l: List[String]): State[St, String] = State { newline =>
+    (s"added $l",St(l))
+  }
 
-  def readLineByLine(scanner: Scanner, grid: Grid, rowNo: Int): IO[Unit] = {
+  def readLineByLine(scanner: Scanner, lines: List[String]): IO[Unit] = {
     if (scanner.hasNextLine) {
       for {
         l <- IO(scanner.nextLine()).debug1
         _ <- IO.sleep(1.millis)
-        plots = l.toCharArray.toList.zipWithIndex.map(p => Plot(p._1, Coords(rowNo, p._2)))
-        _ <- readLineByLine(scanner, grid.copy(plots = plots ::: grid.plots), rowNo + 1)
+       // s <- IO(addLine(l))
+        _ <- readLineByLine(scanner, l :: lines)
       } yield ()
     }
     else {
@@ -48,16 +52,20 @@ object Day12  extends IOApp.Simple {
       }
 
       //println(secondTransformation.map(d => d).run((grid, regions)).value)
-      
+//      val myS = for {
+//        l1 <- lines
+//        s <- addLines(l1)
+//      } yield s
+//      import cats.effect.unsafe.implicits.global
 
-      IO(s"final states is ${compositeTransformation.run((grid, regions)).value}").debug1 *> IO.unit
+      IO(s"final states is ${lines.foldLeft((regions, 0))((r: (Regions, Int), l: String) => (Regions(List()), r._2 + 1))}").debug1 *> IO.unit
     }
   }
   def resourceReadFile(path: String): IO[Unit] =
     IO(s"opening file at $path") *>
       getResourceFromFile(path).use {
         scanner =>
-          readLineByLine(scanner, Grid(List()), 0)
+          readLineByLine(scanner, List())
       }
 
   override def run: IO[Unit] = {
