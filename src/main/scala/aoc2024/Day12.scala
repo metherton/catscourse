@@ -58,7 +58,7 @@ object Day12  extends IOApp.Simple {
 //      } yield s
 //      import cats.effect.unsafe.implicits.global
 
-      IO(s"final states is ${lines.foldLeft((regions, 0))((r: (Regions, Int), l: String) => (Regions(List()), r._2 + 1))}").debug1 *> IO.unit
+      IO(s"final states is ${lines.foldLeft((List[Plot](), 0))((r, l) => (l.toCharArray.toList.zipWithIndex.map(p => Plot(p._1, Coords(r._2, p._2))), r._2 + 1))}").debug1 *> IO.unit
     }
   }
   def resourceReadFile(path: String): IO[Unit] =

@@ -4,6 +4,9 @@ import cats.Eval
 import cats.effect.IO
 import cats.effect.unsafe.implicits.global
 
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+
 object Playground {
 
   val meaningOfLife = Eval.later {
@@ -18,8 +21,37 @@ object Playground {
   case class WorkerVo(anonymousDialing: Boolean)
   def main(args: Array[String]): Unit = {
 
+
+    def bla(): List[String] = {
+      Thread.sleep(2000)
+      List("Martin", "Erna")
+    }
+    def getNames(): Future[List[String]] = {
+      import scala.concurrent.ExecutionContext.Implicits.global
+      Future.successful(bla())
+    }
+
+    import scala.concurrent.ExecutionContext.Implicits.global
+    val re = for {
+      res <- getNames().map(_.map(n => {
+        println(s"names are $n")
+        n
+      }))
+    } yield res
+//    val re = (for {
+//      res <- getNames()
+//    } yield res).map(bla => {
+//      println(s"names are $bla")
+//    })
+
+
     val myFile = "04.txt"
-    println(myFile.split(".")(1))
+//    println(myFile.split(".")(1))
+
+
+    val births = List(("martin", "sheffield"), ("erna", "emmeloord"))
+
+    println(births.unzip)
 
     val one = Option(1)
     val two = Option(2)
@@ -48,7 +80,7 @@ object Playground {
     }
 
 
-    println(s"result1: ${result1.unsafeRunSync()}")
+    //println(s"result1: ${result1.unsafeRunSync()}")
 
 
 //    val up1 = UpdateRequest(Some(false))
